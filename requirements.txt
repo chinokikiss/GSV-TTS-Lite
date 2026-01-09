@@ -4,6 +4,7 @@ einops
 tqdm
 fast_langdetect>=0.3.1
 split-lang
+sounddevice
 transformers
 cn2an
 pypinyin

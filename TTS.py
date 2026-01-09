@@ -38,6 +38,19 @@ class TTS:
         use_g2pw: bool = False,
         use_bert: bool = False,
     ):
+        """
+        Initializes the TTS engine.
+
+        Args:
+            gpt_cache (list[int]): Static cache sizes for the GPT model's CUDA graph, using bucket processing.
+            sovits_cache (list[int]): Static cache sizes for the SoVITS model's CUDA graph, using bucket processing.
+            device (str): The device to run the model on.
+            is_half (bool): Whether to use half-precision (FP16) inference.
+            use_flash_attn (bool): Whether to enable Flash Attention for faster processing.
+            use_g2pw (bool): Whether to use G2PW for enhanced Chinese character-to-phoneme conversion.
+            use_bert (bool): Whether to use BERT for enhanced Chinese semantic understanding.
+        """
+        
         if not device is None:
             tts_config.device = device
         if not is_half is None:
@@ -125,6 +138,33 @@ class TTS:
         gpt_model: str = None,
         sovits_model: str = None,
     ):
+        """
+        Performs standard Text-to-Speech (TTS) inference to generate audio from text.
+
+        Args:
+            spk_audio_path (str): Path to the target speaker's reference audio file.
+            prompt_audio_path (str): Path to the prompt audio file (reference audio for tone/style).
+            prompt_audio_text (str): The transcription (text content) of the prompt audio.
+            prompt_audio_language (str): The language of the prompt audio (e.g., "en", "zh", "ja", "yue", "ko").
+            text (str): The target text to be synthesized into speech.
+            text_language (str): The language of the target text (e.g., "en", "zh", "ja", "yue", "ko").
+            top_k (int, optional): Sampling parameter for the GPT model. Limits the next token selection to the top K most probable tokens.
+            top_p (float, optional): Sampling parameter for the GPT model. Limits the next token selection to a cumulative probability of P.
+            temperature (float, optional): Sampling temperature for the GPT model. Higher values make the output more random/expressive; lower values make it more deterministic.
+            noise_scale (float, optional): Controls the standard deviation of the acoustic distribution in the SoVITS decoder. A certain amount of noise can enhance audio naturalness.
+            speed (float, optional): Speed factor for the generated audio. 1.0 is normal speed, >1.0 is faster, <1.0 is slower.
+            gpt_cache (int, optional): The size of the pre-allocated key-value (KV) cache to use for the GPT model, helping to speed up inference.
+            gpt_model (str, optional): The GPT model to use for the inference.
+            sovits_model (str, optional): The SoVITS model to use for the inference.
+
+        Returns:
+            dict: A dictionary containing the generation results:
+                - "audio_data" (np.ndarray, float32): The generated raw audio waveform data.
+                - "samplerate" (int): The sample rate of the generated audio.
+                - "audio_len_s" (float): The duration of the generated audio in seconds.
+                - "subtitles" (list): Subtitle data corresponding to the generated audio.
+        """
+
         logging.info(f"Starting inference for text: '{text[:20]}...'")
         prompt_audio_language = self.dict_language[prompt_audio_language]
         text_language = self.dict_language[text_language]
@@ -241,6 +281,40 @@ class TTS:
         gpt_model: str = None,
         sovits_model: str = None,
     ):
+        """
+        Performs streaming Text-to-Speech (TTS) inference, yielding audio chunks in real-time.
+
+        Args:
+            spk_audio_path (str): Path to the target speaker's reference audio file.
+            prompt_audio_path (str): Path to the prompt audio file (reference audio for tone/style).
+            prompt_audio_text (str): The transcription (text content) of the prompt audio.
+            prompt_audio_language (str): The language of the prompt audio (e.g., "en", "zh", "ja", "yue", "ko").
+            text (str): The target text to be synthesized into speech.
+            text_language (str): The language of the target text (e.g., "en", "zh", "ja", "yue", "ko").
+            cut_punds (set, optional): A set of punctuation marks used to split the text into segments for processing.
+            cut_minlen (int, optional): The minimum length of a text segment. Segments shorter than this will be merged.
+            cut_mute (float, optional): Duration of silence (in seconds) to insert between text segments.
+            stream_mode (str, optional): The strategy for streaming. "token" yields audio as a specific chunk size of GPT tokens is accumulated; "sentence" yields audio after completing full sentences.
+            stream_chunk (int, optional): The number of tokens to process in one chunk when using 'token' mode.
+            overlap_len (int, optional): The number of overlapping tokens between chunks to ensure smooth audio transitions.
+            boost_first_chunk (bool, optional): If True, reduces initial latency but may introduce noise in short audio; set to False for better stability.
+            top_k (int, optional): Sampling parameter for the GPT model. Limits the next token selection to the top K most probable tokens.
+            top_p (float, optional): Sampling parameter for the GPT model. Limits the next token selection to a cumulative probability of P.
+            temperature (float, optional): Sampling temperature for the GPT model. Higher values make the output more random/expressive; lower values make it more deterministic.
+            noise_scale (float, optional): Controls the standard deviation of the acoustic distribution in the SoVITS decoder. A certain amount of noise can enhance audio naturalness.
+            gpt_cache (int, optional): The size of the pre-allocated key-value (KV) cache to use for the GPT model, helping to speed up inference.
+            gpt_model (str, optional): The GPT model to use for the inference.
+            sovits_model (str, optional): The SoVITS model to use for the inference.
+
+        Yields:
+            dict: A dictionary representing a chunk of the generated audio stream:
+                - "segment_text" (str): The text content corresponding to this audio chunk.
+                - "audio_data" (np.ndarray, float32): The generated raw audio waveform data.
+                - "samplerate" (int): The sample rate of the generated audio.
+                - "audio_len_s" (float): The duration of the generated audio in seconds.
+                - "new_subtitles" (list): Subtitle data specific to this chunk.
+        """
+
         logging.info(f"Starting Stream inference for text: '{text[:20]}...'")
         if stream_mode == "sentence": stream_chunk = 10000
         
@@ -388,6 +462,26 @@ class TTS:
         speed: float = 1.0,
         sovits_model: str = None,
     ):
+        """
+        Performs Voice Conversion (VC) to change the timbre of the input audio to the target speaker.
+
+        Args:
+            spk_audio_path (str): Path to the target speaker's reference audio file.
+            prompt_audio_path (str): Path to the prompt audio file (reference audio for tone/style).
+            prompt_audio_text (str): The transcription (text content) of the prompt audio.
+            prompt_audio_language (str): The language of the prompt audio (e.g., "en", "zh", "ja", "yue", "ko").
+            noise_scale (float, optional): Controls the standard deviation of the acoustic distribution in the SoVITS decoder. A certain amount of noise can enhance audio naturalness.
+            speed (float, optional): Speed factor for the generated audio. 1.0 is normal speed, >1.0 is faster, <1.0 is slower.
+            sovits_model (str, optional): The SoVITS model to use for the inference.
+
+        Returns:
+            dict: A dictionary containing the generation results:
+                - "audio_data" (np.ndarray, float32): The generated raw audio waveform data.
+                - "samplerate" (int): The sample rate of the generated audio.
+                - "audio_len_s" (float): The duration of the generated audio in seconds.
+                - "subtitles" (list): Subtitle data corresponding to the generated audio.
+        """
+
         logging.info(f"Starting VC inference. Prompt audio: {prompt_audio_path}")
         prompt_audio_language = self.dict_language[prompt_audio_language]
 
@@ -457,6 +551,12 @@ class TTS:
         return results
     
     def init_language_module(self, languages: str|list[str]):
+        """
+        Pre-loads the necessary language processing modules.
+
+        Args:
+            languages (str | list[str]): A single language code (e.g., "en", "zh", "ja", "yue", "ko") or a list of language codes to initialize.
+        """
         if isinstance(languages, str): languages = [languages]
         for language in languages:
             if language in self.dict_language:
@@ -471,18 +571,36 @@ class TTS:
                 logging.warning(f'Language "{language}" not found.')
 
     def load_gpt_model(self, model_paths: str|list[str] = "GPT_SoVITS/pretrained_models/s1v3.ckpt"):
+        """
+        Loads GPT model weights from the specified paths into memory.
+
+        Args:
+            model_paths (str | list[str], optional): Path to a single GPT model checkpoint or a list of paths.
+        """
         if isinstance(model_paths, str): model_paths = [model_paths]
         for model_path in model_paths:
             self.gpt_models[model_path] = get_gpt_weights(model_path)
             logging.info(f'Loaded GPT model: {model_path}')
     
     def load_sovits_model(self, model_paths: str|list[str] = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"):
+        """
+        Loads SoVITS model weights from the specified paths into memory.
+
+        Args:
+            model_paths (str | list[str], optional): Path to a single SoVITS model checkpoint or a list of paths.
+        """
         if isinstance(model_paths, str): model_paths = [model_paths]
         for model_path in model_paths:
             self.sovits_models[model_path] = get_sovits_weights(model_path)
             logging.info(f'Loaded SoVITS model: {model_path}')
     
     def unload_gpt_model(self, model_paths: str|list[str]):
+        """
+        Unloads GPT models from memory to free up resources.
+
+        Args:
+            model_paths (str | list[str]): Path to a single GPT model or a list of paths to unload.
+        """
         if isinstance(model_paths, str): model_paths = [model_paths]
         for model_path in model_paths:
             if model_path in self.gpt_models:
@@ -493,6 +611,12 @@ class TTS:
         self.empty_cache()
     
     def unload_sovits_model(self, model_paths: str|list[str]):
+        """
+        Unloads SoVITS models from memory to free up resources.
+
+        Args:
+            model_paths (str | list[str]): Path to a single SoVITS model or a list of paths to unload.
+        """
         if isinstance(model_paths, str): model_paths = [model_paths]
         for model_path in model_paths:
             if model_path in self.sovits_models:
@@ -503,13 +627,31 @@ class TTS:
         self.empty_cache()
     
     def get_gpt_list(self):
+        """
+        Retrieves a list of currently loaded GPT models.
+
+        Returns:
+            list[str]: A list of file paths for the loaded GPT models.
+        """
         return list(self.gpt_models.keys())
 
     def get_sovits_list(self):
+        """
+        Retrieves a list of currently loaded SoVITS models.
+
+        Returns:
+            list[str]: A list of file paths for the loaded SoVITS models.
+        """
         return list(self.sovits_models.keys())
     
     @torch.inference_mode()
     def cache_spk_audio(self, spk_audio_paths: str|list[str]):
+        """
+        Processes and caches speaker audio embeddings for voice cloning.
+
+        Args:
+            spk_audio_paths (str | list[str]): Path to a single speaker audio file or a list of paths.
+        """
         if isinstance(spk_audio_paths, str): spk_audio_paths = [spk_audio_paths]
 
         if not self.sovits_models:
@@ -533,6 +675,17 @@ class TTS:
     
     @torch.inference_mode()
     def cache_prompt_audio(self, prompt_audio_list: dict|list[dict]):
+        """
+        Pre-processes and caches prompt audio data for faster inference.
+
+        Args:
+            prompt_audio_list (dict | list[dict]): A single dictionary or a list of 
+                dictionaries containing prompt audio details. Each dictionary must 
+                have the following keys:
+                - "audio" (str): Path to the prompt audio file.
+                - "language" (str): Language of the prompt text.
+                - "text" (str): The transcription of the prompt audio.
+        """
         if isinstance(prompt_audio_list, dict): prompt_audio_list = [prompt_audio_list]
 
         if not self.sovits_models:
@@ -560,6 +713,12 @@ class TTS:
         self.empty_cache()
     
     def del_spk_audio(self, spk_audio_list: str|list[str]):
+        """
+        Removes speaker audio embeddings from the cache.
+
+        Args:
+            spk_audio_list (str | list[str]): Path to a single speaker audio file or a list of paths to remove from cache.
+        """
         if isinstance(spk_audio_list, str): spk_audio_list = [spk_audio_list]
         for spk_audio in spk_audio_list:
             if spk_audio in self.spk_audio_cache:
@@ -569,6 +728,12 @@ class TTS:
                 logging.warning(f'Speaker audio {spk_audio} not found in cache.')
     
     def del_prompt_audio(self, prompt_audio_list: str|list[str]):
+        """
+        Removes prompt audio data from the cache.
+
+        Args:
+            prompt_audio_list (str | list[str]): Path to a single prompt audio file or a list of paths to remove from cache.
+        """
         if isinstance(prompt_audio_list, str): prompt_audio_list = [prompt_audio_list]
         for prompt_audio in prompt_audio_list:
             if prompt_audio in self.prompt_audio_cache:
@@ -578,9 +743,21 @@ class TTS:
                 logging.warning(f'Prompt audio {prompt_audio} not found in cache.')
     
     def get_spk_audio_list(self):
+        """
+        Retrieves a list of cached speaker audio files.
+
+        Returns:
+            list[str]: A list of file paths for the cached speaker audio.
+        """
         return list(self.spk_audio_cache.keys())
 
     def get_prompt_audio_list(self):
+        """
+        Retrieves a list of cached prompt audio files.
+
+        Returns:
+            list[str]: A list of file paths for the cached prompt audio.
+        """
         return list(self.prompt_audio_cache.keys())
     
     def resample(self, audio_tensor, sr0, sr1):
