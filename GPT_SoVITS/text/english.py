@@ -10,14 +10,16 @@ from builtins import str as unicode
 from text.en_normalization.expend import normalize
 from nltk.tokenize import TweetTokenizer
 
+from config import tts_config
+
 word_tokenize = TweetTokenizer().tokenize
 from nltk import pos_tag
 
-CMU_DICT_PATH = r"GPT_SoVITS\pretrained_models\text\en\cmudict.rep"
-CMU_DICT_FAST_PATH = r"GPT_SoVITS\pretrained_models\text\en\cmudict-fast.rep"
-CMU_DICT_HOT_PATH = r"GPT_SoVITS\pretrained_models\text\en\engdict-hot.rep"
-CACHE_PATH = r"GPT_SoVITS\pretrained_models\text\en\engdict_cache.pickle"
-NAMECACHE_PATH = r"GPT_SoVITS\pretrained_models\text\en\namedict_cache.pickle"
+CMU_DICT_PATH = os.path.join(tts_config.models_dir,r"text\en\cmudict.rep")
+CMU_DICT_FAST_PATH = os.path.join(tts_config.models_dir,r"text\en\cmudict-fast.rep")
+CMU_DICT_HOT_PATH = os.path.join(tts_config.models_dir,r"text\en\engdict-hot.rep")
+CACHE_PATH = os.path.join(tts_config.models_dir,r"text\en\engdict_cache.pickle")
+NAMECACHE_PATH = os.path.join(tts_config.models_dir,r"text\en\namedict_cache.pickle")
 
 
 # 适配中文及 g2p_en 标点

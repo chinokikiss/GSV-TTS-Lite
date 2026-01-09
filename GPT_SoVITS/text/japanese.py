@@ -4,8 +4,10 @@ import os
 from text.alignment import phoneme_word2ph_alignment
 import pyopenjtalk
 
-USERDIC_CSV_PATH = r"GPT_SoVITS\pretrained_models\text\ja\userdict.csv"
-USERDIC_BIN_PATH = r"GPT_SoVITS\pretrained_models\text\ja\user.dict"
+from config import tts_config
+
+USERDIC_CSV_PATH = os.path.join(tts_config.models_dir,r"text\ja\userdict.csv")
+USERDIC_BIN_PATH = os.path.join(tts_config.models_dir,r"text\ja\user.dict")
 
 if os.path.exists(USERDIC_CSV_PATH) and not os.path.exists(USERDIC_BIN_PATH):
     pyopenjtalk.mecab_dict_index(USERDIC_CSV_PATH, USERDIC_BIN_PATH)

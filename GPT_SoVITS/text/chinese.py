@@ -1,4 +1,5 @@
 import re
+import os
 
 import cn2an
 from pypinyin import lazy_pinyin, Style
@@ -7,11 +8,13 @@ from text.symbols2 import punctuation
 from text.tone_sandhi import ToneSandhi
 from text.zh_normalization.text_normlization import TextNormalizer
 
+from config import tts_config
+
 normalizer = lambda x: cn2an.transform(x, "an2cn")
 
 pinyin_to_symbol_map = {
     line.split("\t")[0]: line.strip().split("\t")[1]
-    for line in open(r"GPT_SoVITS\pretrained_models\text\zh\opencpop-strict.txt").readlines()
+    for line in open(os.path.join(tts_config.models_dir,r"text\zh\opencpop-strict.txt")).readlines()
 }
 
 import jieba_fast
