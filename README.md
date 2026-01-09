@@ -53,7 +53,7 @@ For ease of integration, the codebase has been significantly streamlined, with t
 > [!NOTE]
 > **Test Environment**: Single GPU — NVIDIA GeForce RTX 3050 (Laptop)
 
-| Inference Backend | Settings | First Token Latency (TTFT) | Real-Time Factor (RTF) | VRAM Usage | Speedup |
+| Inference Backend | Settings | TTFT | RTF | VRAM | Speedup |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Original** | `streaming_mode=3` | 436 ms | 0.381 | 1.6 GB | - |
 | **RT Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** Speed |
