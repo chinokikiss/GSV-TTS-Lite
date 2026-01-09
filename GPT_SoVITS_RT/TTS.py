@@ -245,7 +245,7 @@ class TTS:
         max_audio = np.abs(audio).max()
         if max_audio > 1:
             audio = audio / max_audio
-        audio = np.concatenate([audio, np.zeros((int(0.2*samplerate),), dtype=audio.dtype)]) 
+        audio = np.concatenate([audio, np.zeros((int(0.2*samplerate),), dtype=audio.dtype)])
         audio = audio.astype(np.float32)
         
         audio_len_s = len(audio) / samplerate
@@ -537,6 +537,7 @@ class TTS:
         max_audio = np.abs(audio).max()
         if max_audio > 1:
             audio = audio / max_audio
+        audio = np.concatenate([audio, np.zeros((int(0.2*samplerate),), dtype=audio.dtype)])
         audio = audio.astype(np.float32)
 
         samplerate = vq_model.samples_per_frame * vq_model.hz
