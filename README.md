@@ -205,7 +205,7 @@ Due to compilation complexity, installation must be done manually based on your 
 
 ## Future Roadmap
 * [ ] Batch Inference Support
-* [ ] Support for New GPT Architectures
+* [ ] Train New GPT Architectures
 
 ## Credits
 
