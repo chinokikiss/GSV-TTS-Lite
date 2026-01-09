@@ -4,6 +4,7 @@ import logging
 import requests
 import zipfile
 from tqdm import tqdm
+from config import tts_config
 
 
 def download_file(url, filename):
@@ -94,10 +95,10 @@ def download_model(url, zip_filename):
 
 def check_pretrained_models():
     model_list = [
-        r"GPT_SoVITS\pretrained_models\chinese-hubert-base",
-        r"GPT_SoVITS\pretrained_models\fast_langdetect",
-        r"GPT_SoVITS\pretrained_models\sv",
-        r"GPT_SoVITS\pretrained_models\text",
+        os.path.join(tts_config.models_dir,"chinese-hubert-base"),
+        os.path.join(tts_config.models_dir,"fast_langdetect"),
+        os.path.join(tts_config.models_dir,"sv"),
+        os.path.join(tts_config.models_dir,"text"),
     ]
 
     is_download = False
@@ -107,8 +108,8 @@ def check_pretrained_models():
             break
     
     if is_download:
-        os.makedirs("GPT_SoVITS\pretrained_models", exist_ok=True)
+        os.makedirs(tts_config.models_dir, exist_ok=True)
         download_model(
             url="/GPTSoVITS-RT/resolve/master/pretrained_models.zip",
-            zip_filename="GPT_SoVITS\pretrained_models\pretrained_models.zip"
+            zip_filename=os.path.join(tts_config.models_dir,"pretrained_models.zip")
         )

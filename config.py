@@ -50,6 +50,8 @@ class Config:
 
         self.use_flash_attn = False
 
+        self.models_dir = "pretrained_models"
+
         self.gpt_cache = None
         self.sovits_cache = None
 

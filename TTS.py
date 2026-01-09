@@ -32,6 +32,7 @@ class TTS:
         self,
         gpt_cache: list[int] = [500],
         sovits_cache: list[int] = [50, 300],
+        models_dir: str = "pretrained_models",
         device: str = None,
         is_half: bool = None,
         use_flash_attn: bool = False,
@@ -44,6 +45,7 @@ class TTS:
         Args:
             gpt_cache (list[int]): Static cache sizes for the GPT model's CUDA graph, using bucket processing.
             sovits_cache (list[int]): Static cache sizes for the SoVITS model's CUDA graph, using bucket processing.
+            models_dir (str): The directory path containing the pretrained model files.
             device (str): The device to run the model on.
             is_half (bool): Whether to use half-precision (FP16) inference.
             use_flash_attn (bool): Whether to enable Flash Attention for faster processing.
@@ -57,6 +59,7 @@ class TTS:
             tts_config.is_half = is_half
             tts_config.dtype = torch.float16 if is_half else torch.float32
 
+        tts_config.models_dir = models_dir
         tts_config.use_flash_attn = use_flash_attn
         tts_config.gpt_cache = gpt_cache
         tts_config.sovits_cache = sovits_cache
@@ -68,22 +71,22 @@ class TTS:
         self.prompt_audio_cache = {}
 
         check_pretrained_models()
-        if use_bert and not os.path.exists("GPT_SoVITS\pretrained_models\chinese-roberta-wwm-ext-large"):
+        if use_bert and not os.path.exists(os.path.join(tts_config.models_dir,"chinese-roberta-wwm-ext-large")):
             download_model(
                 url="/GPTSoVITS-RT/resolve/master/chinese-roberta.zip",
-                zip_filename="GPT_SoVITS\pretrained_models\chinese-roberta-wwm-ext-large.zip"
+                zip_filename=os.path.join(tts_config.models_dir,"chinese-roberta-wwm-ext-large.zip")
             )
-        if use_g2pw and not os.path.exists("GPT_SoVITS\pretrained_models\G2PW"):
+        if use_g2pw and not os.path.exists(os.path.join(tts_config.models_dir,"G2PW")):
             download_model(
                 url="/GPTSoVITS-RT/resolve/master/G2PW.zip",
-                zip_filename="GPT_SoVITS\pretrained_models\G2PW.zip"
+                zip_filename=os.path.join(tts_config.models_dir,"G2PW.zip")
             )
 
-        self.cnhubert_path = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
-        self.cnroberta_path = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
-        self.sv_path = "GPT_SoVITS/pretrained_models/sv/pretrained_eres2netv2w24s4ep4.ckpt"
-        self.default_gpt_path = "GPT_SoVITS/pretrained_models/s1v3.ckpt"
-        self.default_sovits_path = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"
+        self.cnhubert_path = os.path.join(tts_config.models_dir,"chinese-hubert-base")
+        self.cnroberta_path = os.path.join(tts_config.models_dir,"chinese-roberta-wwm-ext-large")
+        self.sv_path = os.path.join(tts_config.models_dir,"sv/pretrained_eres2netv2w24s4ep4.ckpt")
+        self.default_gpt_path = os.path.join(tts_config.models_dir,"s1v3.ckpt")
+        self.default_sovits_path = os.path.join(tts_config.models_dir,"v2Pro/s2Gv2ProPlus.pth")
 
         if use_bert:
             tts_config.cnroberta = cnroberta.CNRoberta(self.cnroberta_path)
@@ -570,7 +573,7 @@ class TTS:
             else:
                 logging.warning(f'Language "{language}" not found.')
 
-    def load_gpt_model(self, model_paths: str|list[str] = "GPT_SoVITS/pretrained_models/s1v3.ckpt"):
+    def load_gpt_model(self, model_paths: str|list[str] = "pretrained_models/s1v3.ckpt"):
         """
         Loads GPT model weights from the specified paths into memory.
 
@@ -582,7 +585,7 @@ class TTS:
             self.gpt_models[model_path] = get_gpt_weights(model_path)
             logging.info(f'Loaded GPT model: {model_path}')
     
-    def load_sovits_model(self, model_paths: str|list[str] = "GPT_SoVITS/pretrained_models/v2Pro/s2Gv2ProPlus.pth"):
+    def load_sovits_model(self, model_paths: str|list[str] = "pretrained_models/v2Pro/s2Gv2ProPlus.pth"):
         """
         Loads SoVITS model weights from the specified paths into memory.
 
