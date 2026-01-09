@@ -38,13 +38,13 @@
   <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 </div>
 
-## 前言 (Preface)
+## 关于项目 (About)
 
 本项目诞生的初衷源于对极致性能的追求。我在原版 GPT-SoVITS 的使用过程中，受限于 RTX 3050 (Laptop) 的算力瓶颈，推理延迟往往难以满足实时交互的需求。
 
 为了打破这一限制，**GPT-SoVITS-RT** 应运而生，它是基于 **V2Pro** 模型开发的推理后端。通过一些深度优化技术，本项目成功在低显存环境下实现了毫秒级的实时响应。
 
-除了性能上的飞跃，**GPT-SoVITS-RT** 还加入了音字精准对齐与音频音色迁移等特色功能。
+除了性能上的飞跃，**GPT-SoVITS-RT** 还实现了**音色与风格的解耦**，支持独立控制说话人的声线与情感，并加入了**音字对齐**与**音色迁移**等特色功能。
 
 为了便于开发者集成，**GPT-SoVITS-RT** 大幅精简了代码架构，且体积被压缩至 **800MB**。
 
@@ -59,7 +59,7 @@
 | **RT Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** Speed |
 | **RT Version** | `Flash_Attn=On` | **133 ms** | **0.108** | **0.8 GB** | 🔥 **3.3x** Speed |
 
-可以看到，**GPT-SoVITS-RT** 实现了 **3x** 速度提升，且显存占用 **减半**！🚀
+可以看到，**GPT-SoVITS-RT** 实现了 **3x ~ 4x** 速度提升，且显存占用 **减半**！🚀
 <br>
 
 ## 环境准备 (Prerequisites)
@@ -70,10 +70,142 @@
 
 ## 快速开始 (Quick Start)
 
+### 安装步骤
+
+> [!IMPORTANT]
+> 确保项目所在的路径是纯英文的。
+
 ```bash
+git clone https://github.com/chinokikiss/GPT-SoVITS-RT
+cd GPT-SoVITS-RT
+
 conda create -n gsv-rt python=3.11
 conda activate gsv-rt
 conda install "ffmpeg"
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
 ```
+
+### 快速使用
+
+在项目根目录下创建一个 Python 脚本，即可开始体验。
+
+> [!TIP]
+> 首次运行时，程序会自动下载所需的预训练模型。
+
+#### 1. 基础语音合成
+```python
+import sounddevice as sd
+from GPT_SoVITS_RT.TTS import TTS
+
+tts = TTS()
+
+res = tts.infer(
+    spk_audio_path="拉菲\日配.mp3",
+    prompt_audio_path="anan\0102Adv17_AnAn001.ogg",
+    prompt_audio_text="ミリアは……本当に刺されているのか？",
+    prompt_audio_language="ja",
+    text="へぇー、ここまでしてくれるんですね",
+    text_language="auto",
+)
+
+print(res)
+sd.play(res["audio_data"], res["samplerate"], blocking=True)
+```
+
+#### 2. 音色迁移
+```python
+res = tts.infer_vc(
+    spk_audio_path="拉菲\日配.mp3",
+    prompt_audio_path="anan\0102Adv17_AnAn001.ogg",
+    prompt_audio_text="ミリアは……本当に刺されているのか？",
+    prompt_audio_language="ja",
+)
+
+print(res)
+sd.play(res["audio_data"], res["samplerate"], blocking=True)
+```
+
+#### 3. 流式推理
+这是 GPT-SoVITS-RT 的核心功能，能够实现极低延迟的实时对话体验。
+```python
+import queue
+import numpy as np
+
+class AudioStreamer:
+    def __init__(self):
+        self.q = queue.Queue()
+        self.buffer = np.zeros((0, 1), dtype='float32')
+
+    def put(self, data):
+        if data.ndim == 1:
+            data = data.reshape(-1, 1)
+        self.q.put(data)
+
+    def callback(self, outdata, frames, time, status):
+        while len(self.buffer) < frames:
+            try:
+                self.buffer = np.concatenate((self.buffer, self.q.get_nowait()))
+            except queue.Empty:
+                break
+        n = min(len(self.buffer), frames)
+        outdata[:n] = self.buffer[:n]
+        outdata[n:] = 0
+        self.buffer = self.buffer[n:]
+
+streamer = AudioStreamer()
+
+stream = sd.OutputStream(
+    samplerate=32000, 
+    channels=1, 
+    callback=streamer.callback,
+    dtype='float32'
+)
+stream.start()
+
+while True:
+    text = input("infer text: ")
+
+    generator = tts.infer_stream(
+        spk_audio_path="拉菲\日配.mp3",
+        prompt_audio_path="anan\0102Adv17_AnAn001.ogg",
+        prompt_audio_text="ミリアは……本当に刺されているのか？",
+        prompt_audio_language="ja",
+        text=text,
+        text_language="auto",
+    )
+
+    for audio_data in generator:
+        print(audio_data)
+        streamer.put(audio_data["audio_data"])
+
+    while not streamer.q.empty() or len(streamer.buffer) > 0:
+        sd.sleep(100)
+```
+
+## Flash Attn
+如果你追求**更低的延迟**和**更高的吞吐量**，强烈建议开启 `Flash Attention` 支持。
+由于该库对编译环境有特定要求，请根据你的系统手动安装：
+
+*   **🐧 Linux / 源码构建**
+    *   官方仓库：[Dao-AILab/flash-attention](https://github.com/Dao-AILab/flash-attention)
+
+*   **🪟 Windows 用户**
+    *   预编译 Wheel 包：[lldacing/flash-attention-windows-wheel](https://huggingface.co/lldacing/flash-attention-windows-wheel/tree/main)
+
+> [!TIP]
+> 安装完成后，在TTS配置中设置 `use_flash_attn=True` 即可享受加速效果！🚀
+
+## 未来计划 (Future Roadmap)
+* [ ] **批量推理**
+* [ ] **新架构 GPT 模型**
+
+## 致谢 (Credits)
+特别感谢以下项目：
+- [RVC-Boss/GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
+- [High-Logic/Genie-TTS](https://github.com/High-Logic/Genie-TTS)
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=chinokikiss/GPT-SoVITS-RT&type=Date)](https://star-history.com/#chinokikiss/GPT-SoVITS-RT&Date)
