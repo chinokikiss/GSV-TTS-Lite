@@ -184,6 +184,44 @@ while True:
         sd.sleep(100)
 ```
 
+<details>
+<summary><strong>4. 其他接口</strong></summary>
+
+### 1. 模型初始化与加载
+
+#### `init_language_module(languages)`
+预加载必要的语言处理模块。
+
+#### `load_gpt_model(model_paths="pretrained_models/s1v3.ckpt")`
+将 GPT 模型权重从指定路径加载到内存中。
+
+#### `load_sovits_model(model_paths="pretrained_models/v2Pro/s2Gv2ProPlus.pth")`
+将 SoVITS 模型权重从指定路径加载到内存中。
+
+### 2. 模型卸载与列表获取
+
+#### `unload_gpt_model(model_paths)` / `unload_sovits_model(model_paths)`
+从内存中卸载模型以释放资源。
+
+#### `get_gpt_list()` / `get_sovits_list()`
+获取当前已加载模型的列表。
+
+### 3. 音频缓存管理
+
+#### `cache_spk_audio(spk_audio_paths)`
+预处理并缓存用于声音克隆的说话人音频嵌入。
+
+#### `cache_prompt_audio(prompt_audio_list)`
+预处理并缓存提示音频数据。
+
+#### `del_spk_audio(spk_audio_list)` / `del_prompt_audio(prompt_audio_list)`
+从缓存中移除音频嵌入。
+
+#### `get_spk_audio_list()` / `get_prompt_audio_list()`
+获取缓存中的音频数据列表。
+
+</details>
+
 ## Flash Attn
 如果你追求**更低的延迟**和**更高的吞吐量**，强烈建议开启 `Flash Attention` 支持。
 由于该库对编译环境有特定要求，请根据你的系统手动安装：
@@ -198,6 +236,7 @@ while True:
 > 安装完成后，在TTS配置中设置 `use_flash_attn=True` 即可享受加速效果！🚀
 
 ## 未来计划 (Future Roadmap)
+* [ ] **网页界面 & 整合包**
 * [ ] **批量推理**
 * [ ] **新架构 GPT 模型**
 
