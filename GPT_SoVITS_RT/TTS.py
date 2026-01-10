@@ -270,7 +270,7 @@ class TTS:
         text: str,
         text_language: str,
         cut_punds: dict = {",", ".", ";", "?", "!", "、", "，", "。", "？", "！", ";", "："},
-        cut_minlen: int = 5,
+        cut_minlen: int = 10,
         cut_mute: int = 0.2,
         stream_mode: str = "token" or "sentence",
         stream_chunk: int = 25,
@@ -919,4 +919,5 @@ class TTS:
             elif str(tts_config.device) == "mps":
                 torch.mps.empty_cache()
         except:
+
             pass
