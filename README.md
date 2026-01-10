@@ -178,6 +178,7 @@ while True:
         prompt_audio_language="ja",
         text=text,
         text_language="auto",
+        boost_first_chunk=True, # If True, reduces initial latency but may introduce noise in short audio; set to False for better stability.
     )
 
     for audio_data in generator:
