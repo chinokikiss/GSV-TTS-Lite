@@ -242,7 +242,7 @@ Due to compilation complexity, installation must be done manually based on your 
 > After installation, set `use_flash_attn=True` in the TTS configuration to unlock peak performance! 🚀
 
 ## Future Roadmap
-* [ ] **WebUI & package**
+* [ ] **API & WebUI & package**
 * [ ] **Batch Inference Support**
 * [ ] **Train New GPT Architectures**
 
