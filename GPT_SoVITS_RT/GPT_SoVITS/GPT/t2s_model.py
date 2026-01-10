@@ -379,6 +379,7 @@ class Text2SemanticDecoder(nn.Module):
         repetition_penalty: float = 1.35,
         stream_chunk: int = 25,
         boost_first_chunk: bool = True,
+        debug: bool = True,
     ):
         x = self.ar_text_embedding(x)
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
@@ -438,7 +439,7 @@ class Text2SemanticDecoder(nn.Module):
         
         first_chunk = True
         pre_chunk = None
-        for idx in tqdm(range(bucket.max_kv_cache - bucket.kv_cache_len)):
+        for idx in tqdm(range(bucket.max_kv_cache - bucket.kv_cache_len), disable=not debug):
             idx = idx + 1
 
             bucket.graph_xy_pos.copy_(xy_pos)
