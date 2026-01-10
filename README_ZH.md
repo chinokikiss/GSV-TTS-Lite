@@ -219,13 +219,13 @@ while True:
 ### 3. 音频缓存管理
 
 #### `cache_spk_audio(spk_audio_paths)`
-预处理并缓存用于声音克隆的说话人音频嵌入。
+预处理并缓存说话人音频数据。
 
 #### `cache_prompt_audio(prompt_audio_list)`
 预处理并缓存提示音频数据。
 
 #### `del_spk_audio(spk_audio_list)` / `del_prompt_audio(prompt_audio_list)`
-从缓存中移除音频嵌入。
+从缓存中移除音频数据。
 
 #### `get_spk_audio_list()` / `get_prompt_audio_list()`
 获取缓存中的音频数据列表。
