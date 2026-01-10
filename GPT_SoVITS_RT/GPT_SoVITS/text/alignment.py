@@ -123,6 +123,10 @@ def phoneme_word2ph_alignment(phonemes, other_phonemes, char_phonemes, word2ph):
             __word2ph = _word2ph
     
     word2ph = __word2ph
+
+    if False in flags:
+        print(phonemes, char_phonemes)
+        logging.warning("The phoneme word2ph cannot be aligned!")
     
     for i1, flag in enumerate(flags):
         if not flag:
@@ -134,9 +138,5 @@ def phoneme_word2ph_alignment(phonemes, other_phonemes, char_phonemes, word2ph):
                     s += ph
             word2ph["word"].insert(i0, '')
             word2ph["ph"].insert(i0, 1)
-    
-    if False in flags:
-        print(phonemes, char_phonemes)
-        logging.warning("The phoneme word2ph cannot be aligned!")
-    
+
     return word2ph
