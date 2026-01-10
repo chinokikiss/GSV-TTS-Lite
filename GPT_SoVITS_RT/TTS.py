@@ -273,7 +273,7 @@ class TTS:
         cut_minlen: int = 10,
         cut_mute: int = 0.2,
         stream_mode: str = "token" or "sentence",
-        stream_chunk: int = 25,
+        stream_chunk: int = 20,
         overlap_len: int = 10,
         boost_first_chunk: bool = False,
         top_k: int = 15,
@@ -921,3 +921,4 @@ class TTS:
         except:
 
             pass
+
