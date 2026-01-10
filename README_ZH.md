@@ -174,6 +174,7 @@ while True:
         prompt_audio_language="ja",
         text=text,
         text_language="auto",
+        boost_first_chunk=True, # 如果设置为“True”，可以减少首包延迟，但可能会在短音段中产生噪音；若希望合成更稳定，则应将其设置为“False”。
     )
 
     for audio_data in generator:
