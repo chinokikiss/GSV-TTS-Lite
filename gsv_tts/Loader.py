@@ -110,8 +110,6 @@ def get_gpt_weights(gpt_path, tts_config: Config):
             else:
                 t2s_model = Text2SemanticDecoder(config)
         
-        t2s_model.to_empty(device=tts_config.device) 
-
         # 1. 获取模型内存中的 keys
         model_keys = set(t2s_model.state_dict().keys())
 
@@ -121,10 +119,12 @@ def get_gpt_weights(gpt_path, tts_config: Config):
         file_keys = set(checkpoint_data.keys())
 
         # 3. 进行比较
-        only_in_model = model_keys - file_keys
-        only_in_file = file_keys - model_keys
-        print(only_in_model)
-        print(only_in_file)
+        print(model_keys - file_keys)
+        print(file_keys - model_keys)
+
+        input()
+        
+        t2s_model.to_empty(device=tts_config.device)
         
         load_model(t2s_model, os.path.join(gpt_path, "model.safetensors"))
 
