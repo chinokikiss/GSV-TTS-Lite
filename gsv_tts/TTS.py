@@ -97,7 +97,7 @@ class TTS:
         check_pretrained_models(self.models_dir)
         if use_bert and not os.path.exists(self.cnroberta_path):
             download_model(
-                url="/GPTSoVITS-RT/resolve/master/chinese-roberta.zip",
+                filename="chinese-roberta.zip",
                 zip_filename=Path(self.models_dir) / "chinese-roberta-wwm-ext-large.zip"
             )
 

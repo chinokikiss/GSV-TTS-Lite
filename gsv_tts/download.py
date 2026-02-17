@@ -64,32 +64,32 @@ def get_base_url():
     
     if ms_ok and not hf_ok:
         logging.info("Selected ModelScope.")
-        return "https://modelscope.cn/models/chinokiki"
+        return "https://modelscope.cn/models/chinokiki/GPTSoVITS-RT/resolve/master/"
         
     if hf_ok and not ms_ok:
         logging.info("Selected Hugging Face.")
-        return "https://huggingface.co/cnmds"
+        return "https://huggingface.co/cnmds/GPTSoVITS-RT/resolve/main/"
     
     if not hf_ok and not ms_ok:
         logging.error("Both Hugging Face and ModelScope are unreachable. Defaulting to Hugging Face.")
-        return "https://huggingface.co/cnmds"
+        return "https://huggingface.co/cnmds/GPTSoVITS-RT/resolve/main/"
 
     if ms_latency < hf_latency:
         logging.info("Selected ModelScope.")
-        return "https://modelscope.cn/models/chinokiki"
+        return "https://modelscope.cn/models/chinokiki/GPTSoVITS-RT/resolve/master/"
     else:
         logging.info("Selected Hugging Face.")
-        return "https://huggingface.co/cnmds"
+        return "https://huggingface.co/cnmds/GPTSoVITS-RT/resolve/main/"
 
 base_url = None
-def download_model(url, zip_filename):
+def download_model(filename, zip_filename):
     global base_url
     if base_url is None:
         base_url = get_base_url()
     if base_url == "https://modelscope.cn/models/chinokiki":
-        url = base_url + url
+        url = base_url + filename
     elif base_url == "https://huggingface.co/cnmds":
-        url = base_url + url + "?download=true"
+        url = base_url + filename + "?download=true"
 
     download_file(url, zip_filename)
     unzip_file(zip_filename, os.path.dirname(zip_filename))
@@ -113,6 +113,6 @@ def check_pretrained_models(models_dir):
     if is_download:
         os.makedirs(models_dir, exist_ok=True)
         download_model(
-            url="/GPTSoVITS-RT/resolve/master/pretrained_models2.zip",
+            filename="pretrained_models2.zip",
             zip_filename=Path(models_dir) / "pretrained_models2.zip"
         )
