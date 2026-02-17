@@ -1,6 +1,5 @@
 import os
 import time
-import gdown
 import logging
 import requests
 import zipfile
@@ -87,7 +86,10 @@ def download_model(url, zip_filename):
     global base_url
     if base_url is None:
         base_url = get_base_url()
-    url = base_url + url
+    if base_url == "https://modelscope.cn/models/chinokiki":
+        url = base_url + url
+    elif base_url == "https://huggingface.co/cnmds":
+        url = base_url + url + "?download=true"
 
     download_file(url, zip_filename)
     unzip_file(zip_filename, os.path.dirname(zip_filename))
@@ -114,9 +116,3 @@ def check_pretrained_models(models_dir):
             url="/GPTSoVITS-RT/resolve/master/pretrained_models2.zip",
             zip_filename=Path(models_dir) / "pretrained_models2.zip"
         )
-
-        if base_url == "https://huggingface.co/cnmds":
-            zip_filename = Path(models_dir) / "g2p.zip"
-            gdown.download(f"https://drive.google.com/uc?id=1msC8iXx8fMM7ZquYW3_d9_UL8DofIhPY", zip_filename, quiet=False)
-            unzip_file(zip_filename, os.path.dirname(zip_filename))
-            os.remove(zip_filename)
