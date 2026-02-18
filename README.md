@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/chinokikiss/GSV-TTS-Lite">
-    <img src="awa.gif" alt="Logo" width="320" height="480">
+    <img src="huiyeji.gif" alt="Logo" width="240" height="254">
   </a>
 
   <h1>GSV-TTS-Lite</h1>
