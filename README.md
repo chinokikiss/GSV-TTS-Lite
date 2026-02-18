@@ -119,7 +119,6 @@ tts.load_gpt_model()
 # 将 SoVITS 模型权重从指定路径加载到内存中，这里加载默认模型。
 tts.load_sovits_model()
 
-
 # infer 是最简单、最原始的推理方式，适用于短文本推理。
 audio = tts.infer(
     spk_audio_path="examples\laffey.mp3", # 音色参考音频
