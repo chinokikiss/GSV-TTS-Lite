@@ -277,14 +277,17 @@ Get the list of currently loaded models.
 #### `cache_spk_audio(spk_audio_paths)`
 Preprocess and cache speaker reference audio data.
 
-#### `cache_prompt_audio(prompt_audio_list)`
+#### `cache_prompt_audio(prompt_audio_paths, prompt_audio_texts, prompt_audio_languages)`
 Preprocess and cache prompt reference audio data.
 
-#### `del_spk_audio(spk_audio_list)` / `del_prompt_audio(prompt_audio_list)`
+#### `del_spk_audio(spk_audio_list)` / `del_prompt_audio(prompt_audio_paths)`
 Remove audio data from the cache.
 
 #### `get_spk_audio_list()` / `get_prompt_audio_list()`
 Get the list of audio data in the cache.
+
+#### `to_safetensors(checkpoint_path)`
+Converts PyTorch checkpoint files (.pth or .ckpt) into the safetensors format.
 
 </details>
 
