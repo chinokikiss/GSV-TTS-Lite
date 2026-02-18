@@ -22,11 +22,11 @@
   </p>
 
   <p>
-    <a href="README.md">
+    <a href="README_EN.md">
       <img src="https://img.shields.io/badge/English-66ccff?style=flat-square&logo=github&logoColor=white" alt="English">
     </a>
     &nbsp;
-    <a href="README_ZH.md">
+    <a href="README.md">
       <img src="https://img.shields.io/badge/简体中文-ff99cc?style=flat-square&logo=github&logoColor=white" alt="Chinese">
     </a>
   </p>
