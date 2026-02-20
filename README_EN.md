@@ -46,6 +46,7 @@ Beyond the leap in performance, **GSV-TTS-Lite** implements the **decoupling of 
 
 To facilitate integration for developers, **GSV-TTS-Lite** features a significantly streamlined code architecture and is available on PyPI as the `gsv-tts-lite` library, supporting one-click installation via `pip`.
 
+The currently supported languages are Chinese, Japanese, and English. The available models include v2pro and v2proplus.
 ## Performance Comparison
 
 > [!NOTE]
@@ -68,11 +69,11 @@ As shown, **GSV-TTS-Lite** achieves **3x ~ 4x** speed improvements while **halvi
 - **Hardware Requirements**:
   - **OS**: Windows only.
   - **GPU**: NVIDIA GPU with at least **4GB** VRAM.
-  - **VRAM Note**: The `Qwen3-ASR` model is integrated by default. If VRAM is insufficient, you can disable the ASR module via parameters in `run.bat` to save space.
+  - **VRAM Note**: The `Qwen3-ASR` model is integrated by default. If VRAM is insufficient, you can disable the ASR module via parameters in `go-webui.bat` to save space.
 - **Download Link**: [Placeholder]
 - **Instructions**:
   1. Download and extract the package (ensure the path contains no Chinese characters).
-  2. Double-click `run.bat` and wait for the web UI to launch.
+  2. Double-click `go-webui.bat` and wait for the web UI to launch.
   3. Start experiencing high-speed voice synthesis!
 
 ## Deployment (For Developers)
