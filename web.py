@@ -12,12 +12,6 @@ from datetime import datetime
 from pedalboard import Pedalboard, Compressor, HighpassFilter, PeakFilter, Reverb, Gain
 import pyloudnorm as pyln
 
-import platform
-if platform.system() == "Windows":
-    import psutil
-    p = psutil.Process(os.getpid())
-    p.nice(psutil.HIGH_PRIORITY_CLASS)
-
 from gsv_tts import TTS, AudioClip
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
@@ -77,11 +71,21 @@ def upload_sovits(new_sovits):
         tts.load_sovits_model(new_sovits.strip('"“”'))
 
 
-def update_spk_weights(files):
+def update_spk_weights(files, weights):
     if not files:
         return "1.0"
-    count = len(files)
-    return ", ".join(["1.0"] * count)
+
+    weights = re.split(r'[：:]\s*', weights)
+    weights = [weight for weight in weights if weight]
+
+    f_len = len(files)
+    w_len = len(weights)
+    if f_len <= w_len:
+        new_weights = weights[:f_len]
+    else:
+        new_weights = weights + ["1.0"]*(f_len-w_len)
+
+    return ": ".join(new_weights)
 
 
 ignore_transcribe = False
@@ -94,22 +98,11 @@ def audio_transcriber(audio_file):
 
     if not audio_file is None and not asr is None:
         results = asr.transcribe(audio_file)
-        language = results[0].language
         text = results[0].text
 
-        dict_language = {
-            "Chinese": "中英混合",
-            "Cantonese": "粤英混合",
-            "Japanese": "日英混合",
-            "Korean": "韩英混合",
-            "English": "英文",
-        }
-
-        if language in dict_language:
-            language = dict_language[language]
-            return language, text
+        return text
     
-    return gr.update(), gr.update()
+    return gr.update()
 
 
 def parse_tagged_text(text):
@@ -142,20 +135,19 @@ def parse_tagged_text(text):
     return cut_texts, tags
 
 def parse_speaker_weights(multi_spk_files, spk_weights):
-    spk_weights = re.split(r'[，,]\s*', spk_weights)
+    spk_weights = re.split(r'[：:]\s*', spk_weights)
     spk_audio = {multi_spk_files[i]: float(item) for i, item in enumerate(spk_weights) if item}
     return spk_audio
 
 
 # 预设存储
 presets = {}
-def save_preset(name, prompt_audio, prompt_text, prompt_lang, multi_spk_files, spk_weights):
+def save_preset(name, prompt_audio, prompt_text, multi_spk_files, spk_weights):
     if not name:
         return gr.update(choices=list(presets.keys())), "请输入预设名称"
     presets[name] = {
         "prompt_audio": prompt_audio,
         "prompt_text": prompt_text,
-        "prompt_lang": prompt_lang,
         "multi_spk_files": multi_spk_files,
         "spk_weights": spk_weights
     }
@@ -166,14 +158,14 @@ def load_preset(name):
     ignore_transcribe = True
 
     if name not in presets:
-        return None, "", "中英混合", None, "1.0"
+        return None, "", None, "1.0"
     p = presets[name]
-    return p["prompt_audio"], p["prompt_text"], p["prompt_lang"], p["multi_spk_files"], p["spk_weights"]
+    return p["prompt_audio"], p["prompt_text"], p["multi_spk_files"], p["spk_weights"]
 
 
 def vc_request(
     multi_spk_files, spk_weights,
-    prompt_audio, prompt_text, prompt_lang,
+    prompt_audio, prompt_text,
 ):
     try:
         start_time = time.time()
@@ -182,7 +174,6 @@ def vc_request(
             spk_audio_path=parse_speaker_weights(multi_spk_files, spk_weights),
             prompt_audio_path=prompt_audio,
             prompt_audio_text=prompt_text,
-            prompt_audio_language=prompt_lang,
         )
 
         end_time = time.time()
@@ -204,8 +195,8 @@ def vc_request(
 
 def tts_request(
     multi_spk_files, spk_weights,
-    prompt_audio, prompt_text, prompt_lang,
-    text, text_lang,
+    prompt_audio, prompt_text,
+    text,
     top_k, top_p, temperature, rep_penalty, noise_scale, speed,
     enable_enhance,
     is_cut_text, cut_punds, cut_minlen, cut_mute, cut_mute_scale_map,
@@ -225,7 +216,6 @@ def tts_request(
         spk_audio_paths = []
         prompt_audio_paths = []
         prompt_audio_texts = []
-        prompt_audio_languages = []
         texts = []
 
         for i in range(len(cut_texts)):
@@ -240,13 +230,11 @@ def tts_request(
                     spk_audio_paths.append(spk_audio)
                     prompt_audio_paths.append(prompt_audio)
                     prompt_audio_texts.append(prompt_text)
-                    prompt_audio_languages.append(prompt_lang)
                 else:
                     p = presets[tags[i]]
                     spk_audio_paths.append(parse_speaker_weights(p["multi_spk_files"], p["spk_weights"]))
                     prompt_audio_paths.append(p["prompt_audio"])
                     prompt_audio_texts.append(p["prompt_text"])
-                    prompt_audio_languages.append(p["prompt_lang"])
                 
                 texts.append(cut_texts[i])
                     
@@ -254,9 +242,7 @@ def tts_request(
             spk_audio_paths=spk_audio_paths,
             prompt_audio_paths=prompt_audio_paths,
             prompt_audio_texts=prompt_audio_texts,
-            prompt_audio_languages=prompt_audio_languages,
             texts=texts,
-            texts_language=text_lang,
             is_cut_text=is_cut_text,
             cut_punds=cut_punds,
             cut_minlen=cut_minlen,
@@ -335,7 +321,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 with gr.Column(scale=1):
                     gr.Markdown("### 第二步：合成内容（支持多说话人，支持停顿标签）")
                     text = gr.Textbox(label="合成目标文本", lines=5, value="谁罕见?啊？骂谁罕见！")
-                    text_lang = gr.Dropdown(["中英混合", "粤英混合", "日英混合", "韩英混合", "多语种混合", "中文", "粤语", "英文", "日文", "韩文"], value="中英混合", label="文本语言")
                     enable_enhance = gr.Checkbox(label="启用音频增强", value=True)
                     
                     with gr.Accordion("生成参数", open=False):
@@ -345,7 +330,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         top_k = gr.Slider(1, 50, 15, step=1, label="Top K")
                         top_p = gr.Slider(0.1, 1.0, 1.0, label="Top P")
                         rep_penalty = gr.Slider(1.0, 2.0, 1.35, label="重复惩罚")
-                        sovits_batch_size = gr.Number(label="SoVITS最大并行推理大小", value=8)
+                        sovits_batch_size = gr.Number(label="SoVITS最大并行推理大小", value=10)
                         is_cut_text = gr.Checkbox(label="是否切分文本", value=True)
                         cut_punds = gr.Textbox(label="切分标点", value='{"。", ".", "?", "？", "!", "！", ",", "，", ":", "：", ";", "；", "、"}')
                         cut_minlen = gr.Number(label="最小切分长度", value=10)
@@ -363,11 +348,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     with gr.Tab("风格参考"):
                         prompt_audio = gr.Audio(label="风格参考音频 (决定语气、情感)", type="filepath")
                         prompt_text = gr.Textbox(label="风格参考音频对应文本", placeholder="输入参考音频中的文本内容")
-                        prompt_lang = gr.Dropdown(["中英混合", "粤英混合", "日英混合", "韩英混合", "多语种混合", "中文", "粤语", "英文", "日文", "韩文"], value="中英混合", label="文本语言")
 
                     with gr.Tab("音色参考（支持多音色融合）"):
                         multi_spk_files = gr.File(label="可上传多个音色参考音频", file_count="multiple")
-                        spk_weights = gr.Textbox(label="音色权重 (用逗号分隔)", value="1.0", placeholder="例如: 0.5, 0.5")
+                        spk_weights = gr.Textbox(label="音色权重 (用冒号分隔)", value="1.0", placeholder="例如: 1.0: 1.0")
 
             with gr.Group():
                 btn = gr.Button("🔥 开始语音合成", variant="primary", size="lg")
@@ -394,11 +378,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     gr.Markdown("#### 1. 源音频参考")
                     vc_source_audio = gr.Audio(label="上传源音频", type="filepath")
                     vc_source_text = gr.Textbox(label="源音频对应文本", placeholder="输入源音频中的文本内容", lines=2)
-                    vc_source_lang = gr.Dropdown(["中英混合", "粤英混合", "日英混合", "韩英混合", "多语种混合", "中文", "粤语", "英文", "日文", "韩文"], value="中英混合", label="文本语言", interactive=True)
                     
                     gr.Markdown("#### 2. 目标音色参考（支持多音色融合）")
                     vc_multi_spk_files = gr.File(label="可上传多个音色参考音频", file_count="multiple")
-                    vc_spk_weights = gr.Textbox(label="音色权重 (用逗号分隔)", value="1.0", placeholder="例如: 0.5, 0.5")
+                    vc_spk_weights = gr.Textbox(label="音色权重 (用冒号分隔)", value="1.0", placeholder="例如: 1.0: 1.0")
                 
                 with gr.Column(scale=1):
                     gr.Markdown("#### 3. 执行与输出")
@@ -425,38 +408,38 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
     save_btn.click(
         fn=save_preset,
-        inputs=[preset_name, prompt_audio, prompt_text, prompt_lang, multi_spk_files, spk_weights],
+        inputs=[preset_name, prompt_audio, prompt_text, multi_spk_files, spk_weights],
         outputs=[preset_dropdown, log_output]
     )
     
     preset_dropdown.change(
         fn=load_preset,
         inputs=[preset_dropdown],
-        outputs=[prompt_audio, prompt_text, prompt_lang, multi_spk_files, spk_weights]
+        outputs=[prompt_audio, prompt_text, multi_spk_files, spk_weights]
     )
 
     multi_spk_files.change(
         fn=update_spk_weights,
-        inputs=multi_spk_files,
+        inputs=[multi_spk_files, spk_weights],
         outputs=spk_weights
     )
 
     vc_multi_spk_files.change(
         fn=update_spk_weights,
-        inputs=vc_multi_spk_files,
+        inputs=[vc_multi_spk_files, vc_spk_weights],
         outputs=vc_spk_weights
     )
 
     prompt_audio.change(
         fn=audio_transcriber,
         inputs=prompt_audio,
-        outputs=[prompt_lang, prompt_text]
+        outputs=prompt_text
     )
 
     vc_source_audio.change(
         fn=audio_transcriber,
         inputs=vc_source_audio,
-        outputs=[vc_source_lang, vc_source_text]
+        outputs=vc_source_text
     )
 
     gpt_path.change(
@@ -475,8 +458,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         fn=tts_request,
         inputs=[
             multi_spk_files, spk_weights,
-            prompt_audio, prompt_text, prompt_lang,
-            text, text_lang,
+            prompt_audio, prompt_text,
+            text,
             top_k, top_p, temperature, rep_penalty, noise_scale, speed,
             enable_enhance,
             is_cut_text, cut_punds, cut_minlen, cut_mute, cut_mute_scale_map,
@@ -493,7 +476,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         fn=vc_request,
         inputs=[
             vc_multi_spk_files, vc_spk_weights,
-            vc_source_audio, vc_source_text, vc_source_lang,
+            vc_source_audio, vc_source_text,
         ],
         outputs=[vc_output_audio, vc_log_output]
     )
@@ -506,20 +489,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 
 if __name__ == "__main__":
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() == 'true':
-            return True
-        elif v.lower() == 'false':
-            return False
-
     parser = argparse.ArgumentParser(description="GSV-TTS")
     parser.add_argument("--gpt_cache_len", type=int, default=512, help="GPT KV cache 上下文长度")
     parser.add_argument("--gpt_batch_size", type=int, default=8, help="GPT 最大并行推理大小")
-    parser.add_argument("--use_bert", type=str2bool, default=True, help="使用BERT提升中文语义理解能力")
-    parser.add_argument("--use_flash_attn", type=str2bool, default=False, help="使用Flash Attn加速推理")
-    parser.add_argument("--use_asr", type=str2bool, default=True, help="使用ASR自动识别音频文本")
+    parser.add_argument("--use_bert", type=bool, default=True, help="使用BERT提升中文语义理解能力")
+    parser.add_argument("--use_flash_attn", type=bool, default=False, help="使用Flash Attn加速推理")
+    parser.add_argument("--use_asr", type=bool, default=True, help="使用ASR自动识别音频文本")
     parser.add_argument("--port", type=int, default=9881, help="Gradio 端口号")
     parser.add_argument("--share", action="store_true", help="是否开启公网分享")
     
