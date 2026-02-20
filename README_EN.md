@@ -44,8 +44,6 @@ To break through these limitations, **GSV-TTS-Lite** was developed as an inferen
 
 Beyond the leap in performance, **GSV-TTS-Lite** implements the **decoupling of timbre and style**, supporting independent control over the speaker's voice and emotion. It also features **subtitle timestamp alignment** and **voice conversion (timbre transfer)**.
 
-Regarding multilingual support, this project inherits full synthesis capabilities for five languages: **Chinese, English, Japanese, Korean, and Cantonese**.
-
 To facilitate integration for developers, **GSV-TTS-Lite** features a significantly streamlined code architecture and is available on PyPI as the `gsv-tts-lite` library, supporting one-click installation via `pip`.
 
 ## Performance Comparison
@@ -116,7 +114,7 @@ tts = TTS()
 # Load GPT model weights from the specified path into memory; here, the default model is loaded.
 tts.load_gpt_model()
 
-# 将Load SoVITS model weights from the specified path into memory; here, the default model is loaded.
+# Load SoVITS model weights from the specified path into memory; here, the default model is loaded.
 tts.load_sovits_model()
 
 
@@ -125,9 +123,7 @@ audio = tts.infer(
     spk_audio_path="examples\laffey.mp3", # Speaker reference audio
     prompt_audio_path="examples\AnAn.ogg", # Prompt reference audio
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。", # Text corresponding to the prompt audio
-    prompt_audio_language="ja", # Language corresponding to the text
     text="へぇー、ここまでしてくれるんですね。", # Target text to generate
-    text_language="ja",  # Language corresponding to the text
 )
 
 audio.play()
@@ -154,7 +150,6 @@ class SubtitlesQueue:
             subtitles, text = self.q.get()
             
             if subtitles is None:
-                print()
                 break
 
             for subtitle in subtitles:
@@ -187,9 +182,7 @@ generator = tts.infer_stream(
     spk_audio_path="examples\laffey.mp3",
     prompt_audio_path="examples\AnAn.ogg",
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
-    prompt_audio_language="ja",
     text="へぇー、ここまでしてくれるんですね。",
-    text_language="ja",
     debug=False,
 )
 
@@ -199,6 +192,7 @@ for audio in generator:
 
 tts.audio_queue.wait()
 subtitlesqueue.add(None, None)
+print()
 ```
 
 #### 3. Batched Inference
@@ -212,9 +206,7 @@ audios = tts.infer_batched(
     spk_audio_paths="examples\laffey.mp3",
     prompt_audio_paths="examples\AnAn.ogg",
     prompt_audio_texts="ちが……ちがう。レイア、貴様は間違っている。",
-    prompt_audio_languages="ja",
     texts=["へぇー、ここまでしてくれるんですね。", "The old map crinkled in Leo’s trembling hands."],
-    texts_language=["ja", "en"],
 )
 
 for i, audio in enumerate(audios):
@@ -232,7 +224,6 @@ audio = tts.infer_vc(
     spk_audio_path="examples\laffey.mp3",
     prompt_audio_path="examples\AnAn.ogg",
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
-    prompt_audio_language="ja",
 )
 
 audio.play()
