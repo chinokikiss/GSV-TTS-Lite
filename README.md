@@ -46,7 +46,7 @@
 
 为了便于开发者集成，**GSV-TTS-Lite** 大幅精简了代码架构，并已作为 `gsv-tts-lite` 库发布至 PyPI，支持通过 `pip` 一键安装。
 
-目前支持的语言有中日英，支持的模型有v2pro、v2proplus。
+目前支持的语言有 **中日英**，支持的模型有 **V2Pro**、**V2ProPlus**。
 ## 性能对比 (Performance)
 
 > [!NOTE]
