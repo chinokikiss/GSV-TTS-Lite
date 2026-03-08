@@ -6,6 +6,7 @@ transformers
 sounddevice
 safetensors
 wordsegment
+py3langid >= 0.2.2
 g2p_en
 cn2an
 pypinyin
