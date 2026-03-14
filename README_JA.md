@@ -78,10 +78,15 @@
 
 #### 1. 環境設定
 Python>=3.10 を使用して仮想環境を作成することを推奨します。
-
+```bash
+# PyTorch のインストール
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+```
 #### 2. GSV-TTS-Lite のインストール
 上記の基本環境が準備できれば、以下のコマンドを実行するだけで統合が完了します：
-
+```bash
+pip install gsv-tts-lite==0.3.1
+```
 
 ### クイックスタート
 
