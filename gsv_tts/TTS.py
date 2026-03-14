@@ -62,7 +62,7 @@ class TTS:
         self.tts_config = Config()
         
         if not device is None:
-            self.tts_config.device = device
+            self.tts_config.device = torch.device(device)
         if not is_half is None:
             self.tts_config.is_half = is_half
             self.tts_config.dtype = torch.float16 if is_half else torch.float32
