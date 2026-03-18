@@ -11,7 +11,8 @@ import numpy as np
 from datetime import datetime
 from pedalboard import Pedalboard, Compressor, HighpassFilter, PeakFilter, Reverb, Gain
 import pyloudnorm as pyln
-
+from pathlib import Path
+from huggingface_hub import snapshot_download
 import platform
 if platform.system() == "Windows":
     import psutil
@@ -205,7 +206,7 @@ def tts_request(
     text,
     top_k, top_p, temperature, rep_penalty, noise_scale, speed,
     enable_enhance,
-    is_cut_text, cut_punds, cut_minlen, cut_mute, cut_mute_scale_map,
+    is_cut_text, cut_minlen, cut_mute, cut_mute_scale_map,
     sovits_batch_size,
 ):
     try:
@@ -213,7 +214,7 @@ def tts_request(
 
         spk_audio = parse_speaker_weights(multi_spk_files, spk_weights)
 
-        cut_punds = set(cut_punds)
+        #cut_punds = set(cut_punds)
         cut_mute_scale_map = json.loads(cut_mute_scale_map)
 
         cut_texts, tags = parse_tagged_text(text)
@@ -250,7 +251,7 @@ def tts_request(
             prompt_audio_texts=prompt_audio_texts,
             texts=texts,
             is_cut_text=is_cut_text,
-            cut_punds=cut_punds,
+            #cut_punds=cut_punds,
             cut_minlen=cut_minlen,
             cut_mute=cut_mute,
             cut_mute_scale_map=cut_mute_scale_map,
@@ -338,7 +339,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         rep_penalty = gr.Slider(1.0, 2.0, 1.35, label="重复惩罚")
                         sovits_batch_size = gr.Number(label="SoVITS最大并行推理大小", value=10)
                         is_cut_text = gr.Checkbox(label="是否切分文本", value=True)
-                        cut_punds = gr.Textbox(label="切分标点", value='{"。", ".", "?", "？", "!", "！", ",", "，", ":", "：", ";", "；", "、"}')
+                        #cut_punds = gr.Textbox(label="切分标点", value='{"。", ".", "?", "？", "!", "！", ",", "，", ":", "：", ";", "；", "、"}')
                         cut_minlen = gr.Number(label="最小切分长度", value=10)
                         cut_mute = gr.Number(label="切分静音时长(s)", value=0.2)
                         cut_mute_scale_map = gr.Textbox(label="标点静音缩放映射", value='{".": 1.5, "。": 1.5, "?": 1.5, "？": 1.5, "!": 1.5, "！": 1.5, ",": 0.8, "，": 0.8, "、": 0.6}')
@@ -468,7 +469,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             text,
             top_k, top_p, temperature, rep_penalty, noise_scale, speed,
             enable_enhance,
-            is_cut_text, cut_punds, cut_minlen, cut_mute, cut_mute_scale_map,
+            is_cut_text, cut_minlen, cut_mute, cut_mute_scale_map,
             sovits_batch_size,
         ],
         outputs=[output_audio, log_output, temp_history_entry]
@@ -520,14 +521,48 @@ if __name__ == "__main__":
     if args.use_asr:
         from qwen_asr import Qwen3ASRModel
 
+        base_dir = Path(__file__).parent.resolve()
+        local_model_path = base_dir / "models" / "qwen3_asr"
+        
+        # 可改1.7B
+        repo_id = "Qwen/Qwen3-ASR-0.6B"
+
+        # 检查本地是否已有
+        if not (local_model_path.exists() and (local_model_path / "config.json").exists()):
+            print(f"⬇️ 本地未找到模型，正在从 Hugging Face 下载: {repo_id}")
+            print(f"📂 保存路径: {local_model_path}")
+            
+            try:
+               
+                snapshot_download(
+                    repo_id=repo_id,
+                    local_dir=str(local_model_path),
+                    local_dir_use_symlinks=False,
+                    # 下载慢的话可以用下面这个镜像
+                    # endpoint="https://hf-mirror.com" 
+                )
+                print("✅ 模型下载完成！")
+            except Exception as e:
+                print(f"❌ 下载失败: {e}")
+                print("💡 可以用https://hf-mirror.com镜像尝试")
+                raise e
+        else:
+            print(f"✅ 检测到本地模型已存在: {local_model_path}")
+
+        # 4. 加载模型 (始终使用绝对路径)
+        print(f"🚀 正在加载 ASR 模型...")
         asr = Qwen3ASRModel.from_pretrained(
-            "models\qwen3_asr",
+            str(local_model_path),  # 传入绝对路径字符串
             dtype=torch.bfloat16,
             device_map="cuda:0",
             attn_implementation="flash_attention_2" if args.use_flash_attn else None,
+            local_files_only=True 
         )
     else:
         asr = None
+
+
+
 
     tts = TTS(
         gpt_cache=[(1, args.gpt_cache_len)] + [(B, args.gpt_cache_len) for B in range(4, args.gpt_batch_size-1, 4)] + [(args.gpt_batch_size, args.gpt_cache_len)],
