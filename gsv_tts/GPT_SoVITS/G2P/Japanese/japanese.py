@@ -1,7 +1,6 @@
 # modified from https://github.com/CjangCjengh/vits/blob/main/text/japanese.py
 import re
 import pyopenjtalk
-from ..Pause import escaped_pause
 
 
 class JapaneseG2P:

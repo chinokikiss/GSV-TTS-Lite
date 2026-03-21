@@ -214,7 +214,7 @@ class EnglishG2P(G2p):
         text = unicode(text)
         text = normalize(text)
 
-        text = re.sub(f"[^a-zA-Z0-9\s{escaped_pause}]", '', text) # 匹配 非字母、非数字、非空格、非允许标点 的所有字符
+        text = re.sub(f"[^a-zA-Z\s{escaped_pause}]", '', text) # 匹配 非字母、非空格、非允许标点 的所有字符
         text = re.sub(r'\s+', ' ', text) # 将多个空格合并为一个
 
         return text
