@@ -92,7 +92,22 @@ pip install torch torchvision torchaudio
 pip install gsv-tts-lite==0.3.7
 ```
 
-### クイックスタート
+### WebUI 可視化インターフェース
+
+> [!TIP]
+> WebUI モジュールはローカルのソースコードから切り離されており、公開済みの `gsv-tts-lite` を直接呼び出します。
+
+1. **依存関係のインストール**：
+  ```bash
+  cd WebUI
+  pip install -r requirements.txt
+  ```
+2. **プログラムの起動**：
+  ```bash
+  python web.py
+  ```
+
+### Python SDK インターフェース呼び出し
 
 > [!TIP]
 > 初回実行時、プログラムは必要な事前学習済みモデルを自動的にダウンロードします。
