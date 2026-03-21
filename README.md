@@ -110,17 +110,22 @@ pip install torch torchvision torchaudio
 pip install gsv-tts-lite==0.3.7
 ```
 
-### WebUI
+### WebUI 可视化界面
+
+> [!TIP]
+> **独立运行环境**：WebUI 模块与本地源码解耦，它直接调用已发布的`gsv-tts-lite`。
+
 1. **安装依赖**：
   ```bash
-  pip install -r WebUI/requirements.txt
+  cd WebUI
+  pip install -r requirements.txt
   ```
 2. **启动程序**：
   ```bash
-  python WebUI/web.py
+  python web.py
   ```
 
-### Python调用
+### Python SDK 接口调用
 
 > [!TIP]
 > 首次运行时，程序会自动下载所需的预训练模型。
