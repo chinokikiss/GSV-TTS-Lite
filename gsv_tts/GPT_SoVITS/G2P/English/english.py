@@ -4,8 +4,6 @@ import re
 import wordsegment
 from .g2p_en import G2p
 
-from ..Symbols import symbols, punctuation
-
 from builtins import str as unicode
 from .Normalization.expend import normalize
 from nltk.tokenize import TweetTokenizer
@@ -27,15 +25,6 @@ class EnglishG2P(G2p):
 
         nltk.data.path.insert(0, Path(models_dir) / "g2p" / "en" / "nltk")
 
-        # 适配中文及 g2p_en 标点
-        self.rep_map = {
-            "[;:：，；]": ",",
-            '["’]': "'",
-            "。": ".",
-            "！": "!",
-            "？": "?",
-        }
-
         # 分词初始化
         wordsegment.load()
 
@@ -54,24 +43,6 @@ class EnglishG2P(G2p):
             ["K", "AA1", "M", "P", "L", "EH0", "K", "S"],
             "JJ",
         )
-    
-    def replace_phs(self, phs):
-        rep_map = {"'": "-"}
-        phs_new = []
-        for ph in phs:
-            if ph in symbols:
-                phs_new.append(ph)
-            elif ph in rep_map.keys():
-                phs_new.append(rep_map[ph])
-            else:
-                print("ph not in symbols: ", ph)
-        return phs_new
-
-    def replace_consecutive_punctuation(self, text):
-        punctuations = "".join(re.escape(p) for p in punctuation)
-        pattern = f"([{punctuations}\s])([{punctuations}])+"
-        result = re.sub(pattern, r"\1", text)
-        return result
 
     def read_dict_new(self):
         g2p_dict = {}
@@ -145,20 +116,6 @@ class EnglishG2P(G2p):
             name_dict = {}
 
         return name_dict
-
-    def text_normalize(self, text):
-        # todo: eng text normalize
-
-        # 效果相同，和 chinese.py 保持一致
-        pattern = re.compile("|".join(re.escape(p) for p in self.rep_map.keys()))
-        text = pattern.sub(lambda x: self.rep_map[x.group()], text)
-
-        text = unicode(text)
-        text = normalize(text)
-
-        # 避免重复标点引起的参考泄露
-        text = self.replace_consecutive_punctuation(text)
-        return text
 
     def _g2p(self, text):
         # tokenization
@@ -252,8 +209,13 @@ class EnglishG2P(G2p):
         # 可以分词的递归处理
         return [phone for comp in comps for phone in self.qryword(comp)]
     
+    def text_normalize(self, text):
+        text = unicode(text)
+        text = normalize(text)
+        return text
+    
     def g2p(self, text):
         # g2p_en 整段推理，剔除不存在的arpa返回
         phone_list, word2ph = self._g2p(text)
         phones = [ph if ph != "<unk>" else "UNK" for ph in phone_list if ph not in [" ", "<pad>", "UW", "</s>", "<s>"]]
-        return self.replace_phs(phones), word2ph
+        return phones, word2ph

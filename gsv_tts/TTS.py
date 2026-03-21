@@ -29,6 +29,7 @@ from .GPT_SoVITS.SoVITS.module.mel_processing import spectrogram_torch
 from .GPT_SoVITS.G2P import text_to_phonemes
 from .Player import AudioQueue, AudioClip
 from .Config import Config, global_config
+from .GPT_SoVITS.G2P import Pause
 
 
 class TTS:
@@ -103,7 +104,7 @@ class TTS:
         self.cnhubert_model = None
         self.sv_model = None
 
-        self.punctuation = (".", "。", "?", "？", "!", "！", ",", "，", ":", "：", ";", "；", "、", "~", "・", "…")
+        self.punctuation = tuple(Pause.pause_map.keys())
 
         self.samplerate = 32000
         self.gpt_hz = 25

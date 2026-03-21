@@ -1,4 +1,7 @@
+import re
+
 from . import Symbols
+from . import Pause
 from ...Config import global_config
 
 
@@ -11,6 +14,9 @@ def phonemes_to_ids(phones_raw):
 
 
 def text_to_phonemes(text, language):
+
+    text = re.sub(r'\.{3,}|。{3,}', '…', text)
+
     if language == "zh":
         from .Chinese import ChineseG2P
 
@@ -24,7 +30,7 @@ def text_to_phonemes(text, language):
 
         if global_config.japanese_g2p is None:
             global_config.japanese_g2p = JapaneseG2P()
-        norm_text = global_config.japanese_g2p.text_normalize(text)
+        norm_text = text
         phones, word2ph = global_config.japanese_g2p.g2p(norm_text)
     
     else:
@@ -36,6 +42,35 @@ def text_to_phonemes(text, language):
         phones, word2ph = global_config.english_g2p.g2p(norm_text)
     
     assert len(phones) == sum(word2ph["ph"]), f"length mismatch: The length of phones is {len(phones)}, while the total of word2ph is {sum(word2ph['ph'])}"
-
+    
+    # 替换停顿符
+    for i, ph in enumerate(phones):
+        if ph in Pause.pause_map.keys():
+            phones[i] = Pause.pause_map[ph]
+    
     phones = ["UNK" if ph not in Symbols.symbols else ph for ph in phones]
+
+    dup_indices = []
+    for i in range(1, len(phones)):
+        if phones[i] == phones[i-1] and phones[i] in Symbols.punctuation:
+            dup_indices.append(i)
+
+    # 过滤UNK / 去重
+    ph_idx = len(phones)
+    for w_idx in range(len(word2ph["ph"]) - 1, -1, -1):
+        del_count = 0
+
+        for _ in range(word2ph["ph"][w_idx]):
+            ph_idx -= 1
+            if phones[ph_idx] == "UNK" or ph_idx in dup_indices:
+                del_count += 1
+                phones.pop(ph_idx)
+        
+        word2ph["ph"][w_idx] -= del_count
+        if word2ph["ph"][w_idx] == 0:
+            word2ph["ph"].pop(w_idx)
+            word2ph["word"].pop(w_idx)
+    
+    norm_text = "".join(word2ph["word"])
+
     return phones, word2ph, norm_text

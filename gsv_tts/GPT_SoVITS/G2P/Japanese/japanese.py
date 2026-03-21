@@ -1,7 +1,6 @@
 # modified from https://github.com/CjangCjengh/vits/blob/main/text/japanese.py
 import re
 import pyopenjtalk
-from ..Symbols import punctuation
 
 
 class JapaneseG2P:
@@ -18,24 +17,6 @@ class JapaneseG2P:
 
         # List of (symbol, Japanese) pairs for marks:
         self._symbols_to_japanese = [(re.compile("%s" % x[0]), x[1]) for x in [("％", "パーセント")]]
-
-        self.rep_map = {
-            "：": ",",
-            "；": ",",
-            "，": ",",
-            "。": ".",
-            "！": "!",
-            "？": "?",
-            "\n": ".",
-            "·": ",",
-            "、": ",",
-            "...": "…",
-        }
-    
-    def post_replace_ph(self, ph):
-        if ph in self.rep_map.keys():
-            ph = self.rep_map[ph]
-        return ph
 
     def symbols_to_japanese(self, text):
         for regex, replacement in self._symbols_to_japanese:
@@ -162,14 +143,6 @@ class JapaneseG2P:
                 word2ph["ph"].append(1)
         return text, word2ph
 
-    def text_normalize(self, text):
-        punctuations = "".join(re.escape(p) for p in punctuation)
-        pattern = f"([{punctuations}])([{punctuations}])+"
-        result = re.sub(pattern, r"\1", text)
-        return result
-
     def g2p(self, norm_text, with_prosody=True):
         phones, word2ph = self.preprocess_jap(norm_text, with_prosody)
-        phones = [self.post_replace_ph(i) for i in phones]
-        # todo: implement tones and word2ph
         return phones, word2ph
