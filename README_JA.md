@@ -94,9 +94,6 @@ pip install gsv-tts-lite==0.3.7
 
 ### WebUI 可視化インターフェース
 
-> [!TIP]
-> WebUI モジュールはローカルのソースコードから切り離されており、公開済みの `gsv-tts-lite` を直接呼び出します。
-
 1. **依存関係のインストール**：
   ```bash
   cd WebUI
@@ -106,6 +103,16 @@ pip install gsv-tts-lite==0.3.7
   ```bash
   python web.py
   ```
+
+### API サービスインターフェース
+
+1. **依存関係のインストール**：
+  ```bash
+  cd API
+  pip install -r requirements.txt
+  ```
+2. **コアドキュメント**：
+   [API 詳細ガイドディレクトリへ ➔](https://github.com/chinokikiss/GSV-TTS-Lite/tree/main/API)
 
 ### Python SDK インターフェース呼び出し
 

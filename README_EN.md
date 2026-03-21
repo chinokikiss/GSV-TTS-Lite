@@ -94,18 +94,25 @@ pip install gsv-tts-lite==0.3.7
 
 ### WebUI Visual Interface
 
-> [!TIP]
-> The WebUI module is decoupled from the local source code; it directly calls the published `gsv-tts-lite` package.
-
 1. **Install Dependencies**：
   ```bash
   cd WebUI
   pip install -r requirements.txt
   ```
-2. **Launch Program**：
+2. **Start the Program**：
   ```bash
   python web.py
   ```
+
+### API Service Interface
+
+1. **Install Dependencies**：
+  ```bash
+  cd API
+  pip install -r requirements.txt
+  ```
+2. **Core Documentation**：
+   [Go to API Detailed Guide Directory ➔](https://github.com/chinokikiss/GSV-TTS-Lite/tree/main/API)
 
 ### Python SDK Interface
 
