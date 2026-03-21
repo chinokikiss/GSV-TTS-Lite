@@ -427,7 +427,7 @@ class Text2SemanticDecoder(nn.Module):
 
             samples = sample(logits, pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
 
-            if samples[0, 0] == self.EOS:
+            if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
                 break
 
             pre_tokens = torch.concat([pre_tokens, samples], dim=1)
@@ -502,7 +502,7 @@ class Text2SemanticDecoder(nn.Module):
 
             samples = sample(logits, pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
 
-            if samples[0, 0] == self.EOS:
+            if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
                 break
 
             pre_tokens = torch.concat([pre_tokens, samples], dim=1)
@@ -629,7 +629,7 @@ class Text2SemanticDecoder(nn.Module):
                         is_reached.fill_(False)
                         bucket: Bucket = buckets[bucket_i]
                 
-                eos_in_current_step = (samples[:, 0] == self.EOS) | is_reached
+                eos_in_current_step = (torch.argmax(logits, dim=-1) == self.EOS) | (samples[:, 0] == self.EOS) | is_reached
                 finished = (~ignore_batch) & eos_in_current_step
 
                 if finished.any():
@@ -669,7 +669,7 @@ class Text2SemanticDecoder(nn.Module):
                             pre_tokens[i].fill_(0)
                             pre_tokens[i, :single_y.shape[0]] = single_y
 
-                            new_samples = sample(logits, pre_tokens[i:i+1], top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
+                            new_samples = sample(logits[:, :-1], pre_tokens[i:i+1], top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
                             samples[i:i+1] = new_samples
 
                             max_bucket.decode_attn_mask[i:i+1].fill_(False)
