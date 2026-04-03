@@ -45,6 +45,7 @@ class TTS:
         compile_mode: Literal[None, "default-optimized", "max-optimized"] = None,
         use_flash_attn: bool = False,
         use_bert: bool = False,
+        auto_bert: bool = True,
         use_jieba_fast: bool = False,
         always_load_cnhubert: bool = False,
         always_load_sv: bool = False,
@@ -62,7 +63,8 @@ class TTS:
                 - "default-optimized": Standard optimization to improve inference speed (SoVITS).
                 - "max-optimized": Not fully developed yet (GPT、SoVITS、BERT).
             use_flash_attn (bool): Whether to enable Flash Attention for faster inference.
-            use_bert (bool): Whether to use BERT for enhanced Chinese semantic understanding.
+            use_bert (bool): Whether to use BERT for enhanced Chinese semantic understanding. If True, BERT is loaded at initialization.
+            auto_bert (bool): Whether to automatically load BERT when Chinese text is detected. Only effective when use_bert=False. Default is True.
             use_jieba_fast (bool): Whether to use jieba-fast for faster Chinese text segmentation. `jieba-fast` needs to be installed.
             always_load_cnhubert (bool): Whether to keep the CNHubert model loaded in VRAM. Set to True to accelerate Voice Conversion.
             always_load_sv (bool): Whether to keep the Speaker Verification model loaded in VRAM. Set to True to accelerate Speaker Verification.
@@ -78,6 +80,7 @@ class TTS:
         
         self.always_load_cnhubert = always_load_cnhubert
         self.always_load_sv = always_load_sv
+        self.auto_bert = auto_bert
 
         if models_dir is None: models_dir = Path.home() / ".cache" / "gsv"
         self.models_dir = models_dir
@@ -100,13 +103,17 @@ class TTS:
         self.default_sovits_path = Path(self.models_dir) / "s2Gv2ProPlus"
 
         check_pretrained_models(self.models_dir)
-        if use_bert and not os.path.exists(self.cnroberta_path):
-            download_model(
-                filename="chinese-roberta.zip",
-                dir=self.models_dir,
-            )
-
-        if use_bert: self.tts_config.cnroberta = CNRoberta(self.cnroberta_path, self.tts_config)
+        
+        self._bert_loaded = False
+        if use_bert:
+            if not os.path.exists(self.cnroberta_path):
+                download_model(
+                    filename="chinese-roberta.zip",
+                    dir=self.models_dir,
+                )
+            self.tts_config.cnroberta = CNRoberta(self.cnroberta_path, self.tts_config)
+            self._bert_loaded = True
+        
         self.cnhubert_model = None
         self.sv_model = None
 
@@ -168,6 +175,9 @@ class TTS:
         """
 
         try:
+            if self._contains_chinese(text):
+                self._ensure_bert_loaded()
+            
             if not self.check_pause(text):
                 text += "."
 
@@ -311,6 +321,9 @@ class TTS:
         """
 
         try:
+            if self._contains_chinese(text):
+                self._ensure_bert_loaded()
+            
             if not self.check_pause(text):
                 text += "."
 
@@ -507,6 +520,10 @@ class TTS:
         try:
             if isinstance(texts, str):
                 texts = [texts]
+            
+            if any(self._contains_chinese(t) for t in texts):
+                self._ensure_bert_loaded()
+            
             texts = [t if self.check_pause(t) else t + "." for t in texts]
 
             if not is_cut_text: cut_minlen = 10000
@@ -1369,6 +1386,28 @@ class TTS:
         
         finally:
             self._empty_cache()
+    
+    def _contains_chinese(self, text: str) -> bool:
+        from .LangSegment import LangSegment
+        segments = LangSegment.getTexts(text)
+        for segment in segments:
+            if segment['lang'] == 'zh':
+                return True
+        return False
+    
+    def _ensure_bert_loaded(self):
+        if self._bert_loaded:
+            return
+        if not self.auto_bert:
+            return
+        if not os.path.exists(self.cnroberta_path):
+            download_model(
+                filename="chinese-roberta.zip",
+                dir=self.models_dir,
+            )
+        self.tts_config.cnroberta = CNRoberta(self.cnroberta_path, self.tts_config)
+        self._bert_loaded = True
+        logging.info("BERT model loaded lazily for Chinese text")
     
     def check_pause(self, text: str):
         return text.endswith(self.punctuation) or text[-3:] == "..."
