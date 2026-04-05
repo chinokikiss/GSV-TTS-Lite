@@ -10,9 +10,7 @@ class CNRoberta(nn.Module):
         self.tokenizer = AutoTokenizer.from_pretrained(base_path)
         self.bert_model = AutoModelForMaskedLM.from_pretrained(base_path)
         self.bert_model.eval()
-        self.bert_model.to(tts_config.device)
-        if tts_config.is_half: 
-            self.bert_model = self.bert_model.half()
+        self.bert_model.to(tts_config.device, tts_config.dtype)
     
     def forward(self, texts: List[str], word2ph_list: List[List[int]]):
         with torch.no_grad():

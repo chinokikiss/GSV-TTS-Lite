@@ -23,8 +23,7 @@ class CNHubert(nn.Module):
         self.model = HubertModel.from_pretrained(base_path, local_files_only=True, torch_dtype=tts_config.dtype)
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(base_path, local_files_only=True)
         self.eval()
-        self = self.to(tts_config.device)
-        if tts_config.is_half: self = self.half()
+        self = self.to(tts_config.device, tts_config.dtype)
 
     def forward(self, x):
         input_values = self.feature_extractor(x, return_tensors="pt", sampling_rate=16000).input_values.to(x.device)

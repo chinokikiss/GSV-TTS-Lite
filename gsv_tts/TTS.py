@@ -42,7 +42,7 @@ class TTS:
         sovits_cache: list[int] = [50],
         models_dir: str = None,
         device: str = None,
-        is_half: bool = None,
+        dtype: str = None,
         compile_mode: Literal[None, "default-optimized", "max-optimized"] = None,
         use_flash_attn: bool = False,
         use_bert: bool = False,
@@ -59,7 +59,7 @@ class TTS:
             sovits_cache (list[int]): Static cache sizes for the SoVITS model's CUDA graph.
             models_dir (str): The directory path containing the pretrained model files.
             device (str): The device to run the model on.
-            is_half (bool): Whether to use half-precision (FP16) inference.
+            dtype (str): The data type for model inference (e.g., "float16", "bfloat16", "float32").
             compile_mode (Literal[None, "default-optimized", "max-optimized"]): Specifies the optimization mode for `torch.compile`. `triton` needs to be installed.
                 - None: Disable compilation.
                 - "default-optimized": Standard inference optimization for SoVITS.
@@ -76,9 +76,14 @@ class TTS:
         
         if not device is None:
             self.tts_config.device = torch.device(device)
-        if not is_half is None:
-            self.tts_config.is_half = is_half
-            self.tts_config.dtype = torch.float16 if is_half else torch.float32
+        if not dtype is None:
+            dtype_map = {
+                "float32": torch.float32,
+                "float16": torch.float16,
+                "bfloat16": torch.bfloat16
+            }
+
+            self.tts_config.dtype = dtype_map.get(dtype.lower(), torch.float32)
         
         self.always_load_cnhubert = always_load_cnhubert
         self.always_load_sv = always_load_sv
@@ -102,8 +107,8 @@ class TTS:
         self.cnhubert_path = Path(self.models_dir) / "chinese-hubert-base"
         self.cnroberta_path = Path(self.models_dir) / "chinese-roberta-wwm-ext-large"
         self.sv_path = Path(self.models_dir) / "sv" / "pretrained_eres2netv2w24s4ep4.ckpt"
-        self.default_gpt_path = Path(self.models_dir) / "s1v3"
-        self.default_sovits_path = Path(self.models_dir) / "s2Gv2ProPlus"
+        self.default_gpt_path = Path(self.models_dir) / "s1v3.ckpt"
+        self.default_sovits_path = Path(self.models_dir) / "s2Gv2ProPlus.pth"
 
         check_pretrained_models(self.models_dir)
         
@@ -129,9 +134,7 @@ class TTS:
         self.audio_queue = AudioQueue(self.samplerate)
         self._infer_lock = threading.Lock()
         
-        logging.info(f"Device: {self.tts_config.device}")
-        logging.info(f"Half: {self.tts_config.is_half}, dtype: {self.tts_config.dtype}")
-
+        logging.info(f"Device: {self.tts_config.device}, dtype: {self.tts_config.dtype}")
     
     @torch.inference_mode()
     def infer(
@@ -231,7 +234,7 @@ class TTS:
                 pred_semantic, phones2_tensor, ge, noise_scale=noise_scale, speed=speed
             )
 
-            audio = audio[0, 0, :].cpu().numpy()
+            audio = audio[0, 0, :].float().cpu().numpy()
             assign = self._viterbi_monotonic(attn)
             subtitles = self._get_subtitles(word2ph, assign, speed)
 
@@ -249,8 +252,6 @@ class TTS:
             if max_audio > 1:
                 audio = audio / max_audio
             audio = np.concatenate([audio, np.zeros((int(0.2*self.samplerate),), dtype=audio.dtype)])
-            
-            audio = audio.astype(np.float32)
             
             audio_len_s = len(audio) / self.samplerate
 
@@ -447,7 +448,7 @@ class TTS:
                     else:
                         new_subtitles = []
 
-                    audio = audio.cpu().numpy().astype(np.float32)
+                    audio = audio.float().cpu().numpy()
 
                     audio_len_s += len(audio) / self.samplerate
 
@@ -765,7 +766,7 @@ class TTS:
 
                         head_offset = self._find_head_threshold_offsets(audio)
                         tail_offset = self._find_tail_threshold_offsets(audio)
-                        audio = self._fade(audio[head_offset:-tail_offset]).cpu().numpy()
+                        audio = self._fade(audio[head_offset:-tail_offset]).float().cpu().numpy()
 
                         subtitle[0]["start_s"] += head_offset / self.samplerate
                         subtitle[-1]["end_s"] -= tail_offset / self.samplerate
@@ -786,7 +787,7 @@ class TTS:
 
                         head_offset = self._find_head_threshold_offsets(audio)
                         tail_offset = self._find_tail_threshold_offsets(audio)
-                        audio = self._fade(audio[head_offset:-tail_offset]).cpu().numpy()
+                        audio = self._fade(audio[head_offset:-tail_offset]).float().cpu().numpy()
 
                         generated_audios.append(audio)
 
@@ -830,8 +831,6 @@ class TTS:
             for audio_list, subtitles_list, orig_text in zip(final_ordered_audios, final_ordered_subtitles, orig_texts):
                 audio = np.concatenate(audio_list)
                 audio_len_s = len(audio) / self.samplerate
-
-                audio = audio.astype(np.float32)
                 
                 if return_subtitles:
                     subtitle = self._cat_subtitles(*subtitles_list)
@@ -912,7 +911,7 @@ class TTS:
                 prompt.unsqueeze(0), phones_tensor, ge, noise_scale=noise_scale, speed=speed
             )
 
-            audio = audio[0, 0, :].cpu().numpy()
+            audio = audio[0, 0, :].float().cpu().numpy()
             assign = self._viterbi_monotonic(attn)
             subtitles = self._get_subtitles(word2ph, assign, speed)
             
@@ -930,8 +929,6 @@ class TTS:
             if max_audio > 1:
                 audio = audio / max_audio
             audio = np.concatenate([audio, np.zeros((int(0.2*self.samplerate),), dtype=audio.dtype)])
-            
-            audio = audio.astype(np.float32)
             
             audio_len_s = len(audio) / self.samplerate
 
@@ -1424,7 +1421,7 @@ class TTS:
         wav = wav.to(self.tts_config.device)
 
         wav16k = self._resample(wav, sr, 16000).mean(dim=0)
-        wav16k = wav16k.half() if self.tts_config.is_half else wav16k
+        wav16k = wav16k.to(self.tts_config.dtype)
         
         head_offset = self._find_head_threshold_offsets(wav16k)
         tail_offset = self._find_tail_threshold_offsets(wav16k)

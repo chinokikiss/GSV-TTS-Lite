@@ -57,11 +57,8 @@ def get_sovits_weights(sovits_path, tts_config: Config):
             )
         
         vq_model.dec.remove_weight_norm()
-        
         vq_model = vq_model.to_empty(device=tts_config.device)
-
-        if tts_config.is_half: vq_model = vq_model.half()
-        
+        vq_model = vq_model.to(tts_config.dtype)
         load_model(vq_model, os.path.join(sovits_path, "model.safetensors"))
     else:
         dict_s2 = load_sovits_new(sovits_path)
@@ -77,13 +74,8 @@ def get_sovits_weights(sovits_path, tts_config: Config):
         )
 
         vq_model.load_state_dict(dict_s2["weight"], strict=False)
-
         vq_model.dec.remove_weight_norm()
-
-        if tts_config.is_half:
-            vq_model = vq_model.half().to(tts_config.device)
-        else:
-            vq_model = vq_model.to(tts_config.device)
+        vq_model.to(tts_config.device, tts_config.dtype)
 
     vq_model.eval()
     vq_model.warmup(tts_config.dtype, tts_config.device, tts_config.sovits_cache, tts_config.compile_mode)
@@ -111,9 +103,7 @@ def get_gpt_weights(gpt_path, tts_config: Config):
                 t2s_model = Text2SemanticDecoder(config)
         
         t2s_model = t2s_model.to_empty(device=tts_config.device)
-        
-        if tts_config.is_half: t2s_model = t2s_model.half()
-
+        t2s_model = t2s_model.to(tts_config.dtype)
         load_model(t2s_model, os.path.join(gpt_path, "model.safetensors"))
     else:
         dict_s1 = torch.load(gpt_path, map_location="cpu", weights_only=False)
@@ -152,11 +142,7 @@ def get_gpt_weights(gpt_path, tts_config: Config):
             t2s_model = Text2SemanticDecoder(config)
         
         t2s_model.load_state_dict(dict_s1["weight"])
-
-        if tts_config.is_half:
-            t2s_model = t2s_model.half().to(tts_config.device)
-        else:
-            t2s_model = t2s_model.float().to(tts_config.device)
+        t2s_model = t2s_model.to(tts_config.device, tts_config.dtype)
 
     t2s_model.eval()
     t2s_model.warmup(tts_config.dtype, tts_config.device, tts_config.gpt_cache, tts_config.compile_mode)

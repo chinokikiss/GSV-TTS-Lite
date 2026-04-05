@@ -17,9 +17,14 @@ def get_semantic_length(text, en_weight=1.75):
 
 def cut_text(text, cut_minlen=10):
     sentences = seg.segment(text)
+
+    for i in range(1, len(sentences)):
+        if sentences[i][0] in ['!', '！', '?', '？', '.']:
+            sentences[i-1] += sentences[i][0]
+            sentences[i] = sentences[i][1:]
     
     text_cuts = []
-    punds_pattern = r'([，,；;：:、~・…!！?？.]+)'
+    punds_pattern = r'([，,；;：:、~・…]+)'
 
     clauses = []
     for sentence in sentences:

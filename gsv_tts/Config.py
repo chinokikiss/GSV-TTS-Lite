@@ -15,24 +15,26 @@ def get_cuda_device_info(idx: int):
     sm_version = major + minor / 10.0
     mem_gb = props.total_memory / (1024**3)
 
-    # 算力太低（Pascal 架构之前的旧卡），返回 None
     if sm_version < 5.3:
         return None
 
     device = torch.device(f"cuda:{idx}")
 
-    # 针对 GTX 16 系列 (Turing 架构但不带 Tensor Cores) 或 Pascal (如 GTX 1080)
-    # 这些卡虽然支持 fp16 计算，但速度可能不如 fp32，或者容易溢出，所以使用 fp32
+    # 针对旧架构或特殊系列强制使用 float32
     is_16_series = (major == 7 and minor == 5) and ("16" in name)
     if sm_version == 6.1 or is_16_series:
         return device, torch.float32, sm_version, mem_gb
 
-    # 其他较新的卡（Volta, Turing RTX, Ampere, Hopper 等）使用 fp16
-    if sm_version > 6.1:
+    # 针对 Ampere (sm 8.0) 及以上架构，优先使用 bfloat16
+    if sm_version >= 8.0:
+        return device, torch.bfloat16, sm_version, mem_gb
+
+    # 针对 Volta (sm 7.0) 和 Turing (sm 7.5，除16系列外) 使用 float16
+    if sm_version >= 7.0:
         return device, torch.float16, sm_version, mem_gb
 
-    return None
-
+    # 其他情况兜底使用 float32
+    return device, torch.float32, sm_version, mem_gb
 
 def get_mps_device_info():
     """获取 Apple Silicon MPS 设备信息"""
@@ -50,9 +52,9 @@ def get_mps_device_info():
 
 
 # 检测设备类型和配置
-infer_device = None
-is_half = False
+device = None
 device_type = "cpu"
+dtype = None
 
 # 优先尝试 CUDA
 if torch.cuda.is_available():
@@ -65,30 +67,29 @@ if torch.cuda.is_available():
 
     if available_devices:
         best_info = max(available_devices, key=lambda x: (x[2], x[3]))
-        infer_device = best_info[0]
-        is_half = (best_info[1] == torch.float16)
+        device = best_info[0]
+        dtype = best_info[1]
         device_type = "cuda"
 
 # 如果没有 CUDA，尝试 MPS (Apple Silicon)
-if infer_device is None:
+if device is None:
     mps_info = get_mps_device_info()
     if mps_info is not None:
-        infer_device = mps_info[0]
-        is_half = False  # MPS 使用 float32
+        device = mps_info[0]
+        dtype = torch.float32  # MPS 使用 float32
         device_type = "mps"
 
 # 如果没有可用的 GPU，使用 CPU
-if infer_device is None:
-    infer_device = torch.device("cpu")
-    is_half = False  # CPU 使用 float32
+if device is None:
+    device = torch.device("cpu")
+    dtype = torch.float32  # CPU 使用 float32
     device_type = "cpu"
 
 
 class Config:
     def __init__(self):
-        self.is_half = is_half
-        self.dtype = torch.float16 if is_half else torch.float32
-        self.device = infer_device
+        self.dtype = dtype
+        self.device = device
         self.device_type = device_type  # 'cuda', 'mps', 或 'cpu'
 
         self.use_flash_attn = False

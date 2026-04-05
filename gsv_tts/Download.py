@@ -126,14 +126,14 @@ def check_pretrained_models(models_dir):
         if base_url == modelscope_base_url:
             download_model(
                 download_url=base_url,
-                filename="pretrained_models4.zip",
+                filename="pretrained_models5.zip",
                 dir=models_dir,
             )
 
         elif base_url == huggingface_base_url:
             download_model(
                 download_url=base_url,
-                filename="pretrained_models5.zip",
+                filename="pretrained_models6.zip",
                 dir=models_dir,
             )
 
