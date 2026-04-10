@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gsv-tts-lite"
-version = "0.1.0"
+version = "0.3.10"
 authors = [
   { name="mahir0", email="2370950583@qq.com" },
 ]
@@ -15,6 +15,27 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+]
+dependencies = [
+    "einops",
+    "tqdm",
+    "av",
+    "transformers",
+    "sounddevice",
+    "safetensors",
+    "numpy",
+    "py3langid",
+    "pysbd",
+    "onnxruntime",
+    "soundfile",
+    "requests",
+    "nltk",
+    "future",
+    "inflect",
+    "wordsegment",
+    "pypinyin",
+    "jieba",
+    "pyopenjtalk-plus",
 ]
 
 [project.urls]
