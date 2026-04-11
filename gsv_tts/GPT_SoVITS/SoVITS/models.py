@@ -318,8 +318,10 @@ class SynthesizerTrn(nn.Module):
         # 检查是否使用 CUDA Graph（仅 CUDA 设备支持）
         use_cuda_graph = device.type == "cuda"
 
-        if compile_mode == "default-optimized" or compile_mode == "max-optimized":
+        if compile_mode == "default-optimized":
             self.flow_dec = torch.compile(self.flow_dec, mode="default", dynamic=True, fullgraph=True)
+        elif compile_mode == "max-optimized":
+            self.flow_dec = torch.compile(self.flow_dec, mode="max-autotune-no-cudagraphs", dynamic=True, fullgraph=True)
 
         if use_cuda_graph:
             s = torch.cuda.Stream()

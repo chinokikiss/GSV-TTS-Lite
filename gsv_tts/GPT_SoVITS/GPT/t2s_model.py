@@ -213,7 +213,7 @@ class Text2SemanticDecoder(nn.Module):
         self.ar_audio_position.extend_pe(torch.tensor(0.0, dtype=dtype, device=device).expand(1, 4000))
 
         if compile_mode == "max-optimized":
-            self.t2s_transformer.process_prompt = torch.compile(self.t2s_transformer.process_prompt, mode="default", dynamic=True, fullgraph=True)
+            self.t2s_transformer.process_prompt = torch.compile(self.t2s_transformer.process_prompt, mode="max-autotune-no-cudagraphs", dynamic=True, fullgraph=True)
 
         for batch_size, max_kv_cache in gpt_cache:
             if batch_size in self.cuda_graph_buckets:
@@ -419,10 +419,10 @@ class Text2SemanticDecoder(nn.Module):
                 bucket: Bucket = buckets[bucket_i]
 
             bucket.decode_attn_mask[:, :, :, bucket.kv_cache_len] = True
-            bucket.graph_xy_pos.copy_(xy_pos)
 
             # 使用 CUDA Graph（如果可用）或普通执行
             if bucket.cuda_graph is not None:
+                bucket.graph_xy_pos.copy_(xy_pos)
                 bucket.cuda_graph.replay()
                 xy_dec = bucket.graph_xy_dec.clone()
             else:
@@ -499,10 +499,10 @@ class Text2SemanticDecoder(nn.Module):
                 bucket: Bucket = buckets[bucket_i]
             
             bucket.decode_attn_mask[:, :, :, bucket.kv_cache_len] = True
-            bucket.graph_xy_pos.copy_(xy_pos)
 
             # 使用 CUDA Graph（如果可用）或普通执行
             if bucket.cuda_graph is not None:
+                bucket.graph_xy_pos.copy_(xy_pos)
                 bucket.cuda_graph.replay()
                 xy_dec = bucket.graph_xy_dec.clone()
             else:
@@ -623,10 +623,10 @@ class Text2SemanticDecoder(nn.Module):
                 decode_steps += 1
 
                 bucket.decode_attn_mask[batch_indices, :, :, bucket.kv_cache_len] = True
-                bucket.graph_xy_pos.copy_(xy_pos)
 
                 # 使用 CUDA Graph（如果可用）或普通执行
                 if bucket.cuda_graph is not None:
+                    bucket.graph_xy_pos.copy_(xy_pos)
                     bucket.cuda_graph.replay()
                     xy_dec = bucket.graph_xy_dec.clone()
                 else:
