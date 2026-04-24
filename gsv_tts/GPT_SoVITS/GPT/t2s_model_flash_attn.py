@@ -416,10 +416,10 @@ class Text2SemanticDecoder(nn.Module):
             if idx < initial_suppression_steps:
                 logits[:, self.mute_tokens] = -float("Inf")
             
-            if torch.argmax(logits, dim=-1)[0] == self.EOS:
+            samples = sample(logits, pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
+            
+            if samples[0, 0] == self.EOS:
                 break
-
-            samples = sample(logits[:, :-1], pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
 
             pre_tokens = torch.concat([pre_tokens, samples], dim=1)
 
@@ -489,10 +489,10 @@ class Text2SemanticDecoder(nn.Module):
             if idx < initial_suppression_steps:
                 logits[:, self.mute_tokens] = -float("Inf")
 
-            if torch.argmax(logits, dim=-1)[0] == self.EOS:
+            samples = sample(logits, pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
+            
+            if samples[0, 0] == self.EOS:
                 break
-
-            samples = sample(logits[:, :-1], pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
 
             pre_tokens = torch.concat([pre_tokens, samples], dim=1)
 
@@ -601,63 +601,68 @@ class Text2SemanticDecoder(nn.Module):
 
                 logits = self.ar_predict_layer(xy_dec[:, -1])
 
-                samples = sample(logits[:, :-1], pre_tokens, pre_tokens_lens=bucket.kv_cache_len, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
+                samples = sample(logits, pre_tokens, pre_tokens_lens=bucket.kv_cache_len, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
                 
                 is_reached = bucket.kv_cache_len == bucket.max_kv_cache
-                if is_reached.any():
-                    bucket_i += 1
-                    if bucket_i < len(buckets):
-                        is_reached.fill_(False)
-                        bucket: Bucket = buckets[bucket_i]
-                
-                eos_in_current_step = (torch.argmax(logits, dim=-1) == self.EOS) | is_reached
-                finished = (~ignore_batch) & eos_in_current_step
+                is_eos_generated = samples[:, 0] == self.EOS
+                should_stop_seq = is_eos_generated | is_reached
+                finished = ~ignore_batch & should_stop_seq
 
                 if finished.any():
-                    finished_indices = torch.where(finished)[0]
-                    for i in finished_indices.tolist():
-                        pred_semantic.append(pre_tokens[i, bucket.kv_cache_len[i]-decode_steps[i] : bucket.kv_cache_len[i]].clone())
-                        semantic_orig_idx.append(batch_orig_idx[i].clone())
-                        decode_steps[i] = 0
+                    if is_reached.any():
+                        bucket_i += 1
+                        if bucket_i < len(buckets):
+                            is_reached.fill_(False)
+                            bucket = buckets[bucket_i]
 
-                        bucket.kv_cache_len[i].fill_(0)
-                        max_kv_cache_len = bucket.kv_cache_len.max()
-                        for bucket_i in range(len(buckets)):
-                            if buckets[bucket_i].max_kv_cache > max_kv_cache_len:
-                                break
-                        bucket: Bucket = buckets[bucket_i]
+                    should_stop_seq = is_eos_generated | is_reached
+                    finished = ~ignore_batch & should_stop_seq
+
+                    if finished.any():
+                        finished_indices = finished.nonzero(as_tuple=True)[0]
+                        for i in finished_indices:
+                            pred_semantic.append(pre_tokens[i, bucket.kv_cache_len[i]-decode_steps[i] : bucket.kv_cache_len[i]].clone())
+                            semantic_orig_idx.append(batch_orig_idx[i].clone())
+                            decode_steps[i] = 0
+
+                            bucket.kv_cache_len[i].fill_(0)
+                            max_kv_cache_len = bucket.kv_cache_len.max()
+                            for bucket_i in range(len(buckets)):
+                                if buckets[bucket_i].max_kv_cache > max_kv_cache_len:
+                                    break
+                            bucket: Bucket = buckets[bucket_i]
+                            
+                            if current_batch == B:
+                                ignore_batch[i] = True
+                                if ignore_batch.all():
+                                    stop = True
+                                    break
+                            else:
+                                single_x = x[current_batch]
+                                single_y = y[current_batch]
+                                single_bert_feature = bert_feature[current_batch]
+
+                                _xy_pos, prompt_attn_mask = self.process_single_data(
+                                    single_x.unsqueeze(0),
+                                    single_y.unsqueeze(0),
+                                    single_bert_feature.unsqueeze(0),
+                                )
+
+                                xy_dec = self.t2s_transformer.process_prompt(_xy_pos, bucket.k_cache[:, i:i+1], bucket.v_cache[:, i:i+1], bucket.kv_cache_len[i:i+1], prompt_attn_mask)
+                                logits = self.ar_predict_layer(xy_dec[:, -1])
+
+                                x_lens[i].copy_(single_x.shape[0])
+                                bucket.kv_cache_len[i].copy_(single_x.shape[0] + single_y.shape[0])
+                                pre_tokens[i, :single_y.shape[0]] = single_y
+
+                                new_samples = sample(logits[:, :-1], pre_tokens[i:i+1], top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
+                                samples[i:i+1] = new_samples
+
+                                batch_orig_idx[i] = current_batch
+                                current_batch += 1
                         
-                        if current_batch == B:
-                            ignore_batch[i] = True
-                            if ignore_batch.all():
-                                stop = True
-                                break
-                        else:
-                            single_x = x[current_batch]
-                            single_y = y[current_batch]
-                            single_bert_feature = bert_feature[current_batch]
-
-                            _xy_pos, prompt_attn_mask = self.process_single_data(
-                                single_x.unsqueeze(0),
-                                single_y.unsqueeze(0),
-                                single_bert_feature.unsqueeze(0),
-                            )
-
-                            xy_dec = self.t2s_transformer.process_prompt(_xy_pos, bucket.k_cache[:, i:i+1], bucket.v_cache[:, i:i+1], bucket.kv_cache_len[i:i+1], prompt_attn_mask)
-                            logits = self.ar_predict_layer(xy_dec[:, -1])
-
-                            x_lens[i].copy_(single_x.shape[0])
-                            bucket.kv_cache_len[i].copy_(single_x.shape[0] + single_y.shape[0])
-                            pre_tokens[i, :single_y.shape[0]] = single_y
-
-                            new_samples = sample(logits[:, :-1], pre_tokens[i:i+1], top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
-                            samples[i:i+1] = new_samples
-
-                            batch_orig_idx[i] = current_batch
-                            current_batch += 1
-                    
-                    if stop:
-                        break
+                        if stop:
+                            break
                 
                 pre_tokens[batch_indices, bucket.kv_cache_len] = samples.squeeze()
                 y_emb = self.ar_audio_embedding(samples)

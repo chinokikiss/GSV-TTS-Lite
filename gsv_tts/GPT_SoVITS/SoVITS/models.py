@@ -403,11 +403,8 @@ class SynthesizerTrn(nn.Module):
             bucket = None
 
         if bucket and bucket.vits_cuda_graph is not None:
-            z_p_padded = F.pad(z_p, (0, z_max_length-z_current_length), value=0.0)
-            y_mask_padded = F.pad(y_mask, (0, z_max_length-z_current_length), value=0.0)
-
-            bucket.flow_z_p_padded.copy_(z_p_padded)
-            bucket.flow_y_mask_padded.copy_(y_mask_padded)
+            bucket.flow_z_p_padded[..., :z_current_length].copy_(z_p)
+            bucket.flow_y_mask_padded[..., :z_current_length].copy_(y_mask)
             bucket.flow_ge.copy_(ge)
 
             bucket.vits_cuda_graph.replay()
