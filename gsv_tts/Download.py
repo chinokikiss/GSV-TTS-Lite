@@ -142,3 +142,33 @@ def check_pretrained_models(models_dir):
                 filename="g2p.zip",
                 dir=models_dir,
             )
+
+
+cnroberta_int8_base_url = "https://modelscope.cn/models/ltyytn/cnroberta_int8_dynamic/resolve/master/%s"
+
+
+def download_cnroberta_int8(dir, download_url=None):
+    """下载 CNRoberta INT8 Dynamic ONNX 模型"""
+    if download_url is None:
+        download_url = cnroberta_int8_base_url
+    
+    os.makedirs(dir, exist_ok=True)
+    
+    files_to_download = [
+        "config.json",
+        "tokenizer.json",
+        "cnroberta_int8_dynamic.onnx",
+    ]
+    
+    for filename in files_to_download:
+        url = download_url % filename
+        filepath = Path(dir) / filename
+        
+        if os.path.exists(filepath):
+            logging.info(f"文件已存在，跳过: {filepath}")
+            continue
+        
+        logging.info(f"正在下载: {filename}")
+        download_file(url, filepath)
+    
+    logging.info(f"CNRoberta INT8 ONNX 模型下载完成: {dir}")

@@ -25,7 +25,7 @@ from torch.nn import functional as F
 from safetensors.torch import save_model
 
 from .Loader import get_gpt_weights, get_sovits_weights, Gpt, Sovits
-from .Download import check_pretrained_models, download_model
+from .Download import check_pretrained_models, download_model, download_cnroberta_int8
 from .TextProcessor import get_phones_and_bert, cut_text, sub2text_index
 from .GPT_SoVITS.Featurizer import CNHubert, CNRoberta
 from .GPT_SoVITS.SV import ERes2Net
@@ -117,7 +117,13 @@ class TTS:
         
         self._bert_loaded = False
         if use_bert:
-            if not os.path.exists(self.cnroberta_path):
+            # CPU 场景：下载 INT8 ONNX 模型
+            if self.tts_config.device.type == "cpu":
+                int8_onnx_path = self.cnroberta_path / "cnroberta_int8_dynamic.onnx"
+                if not int8_onnx_path.exists():
+                    download_cnroberta_int8(dir=self.cnroberta_path)
+            # GPU 场景：下载原始 PyTorch 模型
+            elif not os.path.exists(self.cnroberta_path):
                 download_model(
                     filename="chinese-roberta.zip",
                     dir=self.models_dir,
@@ -1411,7 +1417,13 @@ class TTS:
             return
         if not self.auto_bert:
             return
-        if not os.path.exists(self.cnroberta_path):
+        # CPU 场景：下载 INT8 ONNX 模型
+        if self.tts_config.device.type == "cpu":
+            int8_onnx_path = self.cnroberta_path / "cnroberta_int8_dynamic.onnx"
+            if not int8_onnx_path.exists():
+                download_cnroberta_int8(dir=self.cnroberta_path)
+        # GPU 场景：下载原始 PyTorch 模型
+        elif not os.path.exists(self.cnroberta_path):
             download_model(
                 filename="chinese-roberta.zip",
                 dir=self.models_dir,
