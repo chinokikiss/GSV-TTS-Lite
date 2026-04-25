@@ -371,6 +371,7 @@ class Text2SemanticDecoder(nn.Module):
         temperature: float = 1.0,
         repetition_penalty: float = 1.35,
         initial_suppression_steps: int = 10,
+        check_interval: int = 5,
     ):
         xy_pos, prompt_attn_mask = self.process_single_data(x, y, bert_feature)
 
@@ -417,16 +418,23 @@ class Text2SemanticDecoder(nn.Module):
                 logits[:, self.mute_tokens] = -float("Inf")
             
             samples = sample(logits, pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
-            
-            if samples[0, 0] == self.EOS:
-                break
 
             pre_tokens = torch.concat([pre_tokens, samples], dim=1)
 
+            if idx % check_interval == 0:
+                if (pre_tokens[0, -check_interval:] == self.EOS).any():
+                    break
+
             y_emb = self.ar_audio_embedding(samples)
             xy_pos = y_emb * self.ar_audio_position.x_scale + pe_cache[bucket.kv_cache_len-x.shape[1]]
-
-        return pre_tokens[:, -idx:].unsqueeze(0)
+        
+        pre_tokens = pre_tokens[:, -idx:]
+        eos_indices = (pre_tokens == self.EOS).nonzero(as_tuple=True)[1]
+        if eos_indices.numel() > 0:
+            first_eos_idx = eos_indices[0].item()
+            return pre_tokens[:, :first_eos_idx].unsqueeze(0)
+        else:
+            return pre_tokens.unsqueeze(0)
         
     @torch.inference_mode()
     def infer_stream(

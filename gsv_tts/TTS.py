@@ -1513,7 +1513,7 @@ class TTS:
         f2_real = torch.cat([f_faded, f2_aligned[:, :, overlap_len:]], dim=-1)
         return f2_real, offset
     
-    def _find_quietest_offsets(self, audio, frame_length=512, hop_length=256, search_len=6400):
+    def _find_quietest_offsets(self, audio, frame_length=512, hop_length=256, search_len=12800):
         search_audio = audio[:search_len]
         frames = search_audio.unfold(0, frame_length, hop_length)
         rms_values = torch.sqrt(torch.mean(frames**2, dim=1))
