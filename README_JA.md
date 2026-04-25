@@ -62,9 +62,10 @@
 | **Lite Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** 速度 |
 | **Lite Version** | `Flash_Attn=On` | **133 ms** | **0.108** | **0.8 GB** | 🔥 **3.3x** 速度 |
 
-| GPU Model | Throughput (it/s) | FlashAttention2 |
+| GPU Model | Throughput (tok/s) | FlashAttention2 |
 | :--- | :---: | :---: |
 | **RTX-PRO-6000** | 1122.72 | Enable |
+| **H200** | 886.47 | Enable |
 | **A100** | 660.73 | Enable |
 | **T4** | 243.45 | Disabled |
 
