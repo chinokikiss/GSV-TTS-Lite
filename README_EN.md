@@ -97,7 +97,7 @@ pip install torch torchvision torchaudio
 #### 2.	Install GSV-TTS-Lite
 If you have prepared the above basic environment, you can directly execute the following command to complete the integration:
 ```bash 
-pip install gsv-tts-lite==0.3.16
+pip install gsv-tts-lite==0.3.17
 ```
 
 ### WebUI Visual Interface
