@@ -48,8 +48,6 @@ def load_sovits(sovits_path):
     version = head2version.get(meta)
     if version is None: version = hash_pretrained_dict.get(hash)
     
-    assert version is not None, "The Sovits model is not the v2/v2pro/v2proplus version. Please check the model file."
-    
     if meta != b"PK":
         data = b"PK" + f.read()
         bio = BytesIO()
@@ -81,7 +79,10 @@ def get_sovits_weights(sovits_path, tts_config: Config):
         
         hps = utils.DictToAttrRecursive(dict_s2["config"])
         hps.model.semantic_frame_rate = "25hz"
-        hps.model.version = version
+        if version is None:
+            assert getattr(hps.model, 'version', None) is not None, "The Sovits model is not the v2/v2pro/v2proplus version. Please check the model file."
+        else:
+            hps.model.version = version
         
         vq_model = SynthesizerTrn(
             hps.data.filter_length // 2 + 1,
