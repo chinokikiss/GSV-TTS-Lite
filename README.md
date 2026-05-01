@@ -44,13 +44,13 @@
 
 本项目诞生的初衷源于对极致性能的追求。我在原版 GPT-SoVITS 的使用过程中，受限于 RTX 3050 (Laptop) 的算力瓶颈，推理延迟往往难以满足实时交互的需求。
 
-为了打破这一限制，**GSV-TTS-Lite** 应运而生，它是基于 **GPT-SoVITS V2Pro** 开发的推理后端。通过一些深度优化技术，本项目成功在低显存环境下实现了毫秒级的实时响应。
+为了打破这一限制，**GSV-TTS-Lite** 应运而生，它是基于 **GPT-SoVITS (V2/V2Pro/V2ProPlus)** 开发的推理后端。通过一些深度优化技术，本项目成功在低显存环境下实现了毫秒级的实时响应。
 
 除了性能上的飞跃，**GSV-TTS-Lite** 还实现了**音色与风格的解耦**，支持独立控制说话人的音色与情感，并加入了**字级时间戳对齐**与**音色迁移**等特色功能。
 
 为了便于开发者集成，**GSV-TTS-Lite** 大幅精简了代码架构，并已作为 `gsv-tts-lite` 库发布至 PyPI，支持通过 `pip` 一键安装。
 
-目前支持的语言有 **中日英**，支持的模型有 **V2Pro**、**V2ProPlus**。
+目前支持的语言有 **中日英**，支持的模型有 **v2**、**V2Pro**、**V2ProPlus**。
 ## 性能对比 (Performance)
 
 > [!NOTE]
@@ -234,6 +234,7 @@ generator = tts.infer_stream(
     prompt_audio_path="examples\AnAn.ogg",
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
     text="へぇー、ここまでしてくれるんですね。",
+    return_subtitles=True,
     debug=False,
 )
 

@@ -44,13 +44,13 @@
 
 The original motivation for this project was the pursuit of ultimate performance. While using the original GPT-SoVITS, I found that the inference latency often struggled to meet the demands of real-time interaction due to the computing power bottlenecks of the RTX 3050 (Laptop).
 
-To break through these limitations, **GSV-TTS-Lite** was developed as an inference backend based on **GPT-SoVITS V2Pro**. Through deep optimization techniques, this project successfully achieves millisecond-level real-time response in low-VRAM environments.
+To break through these limitations, **GSV-TTS-Lite** was developed as an inference backend based on **GPT-SoVITS (V2/V2Pro/V2ProPlus)**. Through deep optimization techniques, this project successfully achieves millisecond-level real-time response in low-VRAM environments.
 
 Beyond the leap in performance, **GSV-TTS-Lite** implements the **decoupling of timbre and style**, supporting independent control over the speaker's voice and emotion. It also features **character-level timestamps alignment** and **voice conversion (timbre transfer)**.
 
 To facilitate integration for developers, **GSV-TTS-Lite** features a significantly streamlined code architecture and is available on PyPI as the `gsv-tts-lite` library, supporting one-click installation via `pip`.
 
-The currently supported languages are **Chinese, Japanese, and English**. The available models include **v2pro and v2proplus**.
+The currently supported languages are **Chinese, Japanese, and English**. The available models include **v2, v2pro and v2proplus**.
 ## Performance Comparison
 
 > [!NOTE]
@@ -217,6 +217,7 @@ generator = tts.infer_stream(
     prompt_audio_path="examples\AnAn.ogg",
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
     text="へぇー、ここまでしてくれるんですね。",
+    return_subtitles=True,
     debug=False,
 )
 
