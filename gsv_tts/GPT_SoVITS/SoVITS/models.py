@@ -340,8 +340,8 @@ class SynthesizerTrn(nn.Module):
 
         with stream_context:
             for sovits_cache in sovits_caches:
-                self.cuda_graph_buckets[(batch_size, sovits_cache)] = Bucket()
-                bucket: Bucket = self.cuda_graph_buckets[(batch_size, sovits_cache)]
+                self.cuda_graph_buckets[sovits_cache] = Bucket()
+                bucket: Bucket = self.cuda_graph_buckets[sovits_cache]
 
                 bucket.sovits_cache = sovits_cache
 
@@ -402,9 +402,9 @@ class SynthesizerTrn(nn.Module):
 
         if cuda_graph:
             z_current_length = z_p.size(-1)
-            for (batch_size, z_max_length) in self.cuda_graph_buckets:
-                if batch_size == 1 and z_max_length >= z_current_length:
-                    bucket: Bucket = self.cuda_graph_buckets[(batch_size, z_max_length)]
+            for z_max_length in sorted(self.cuda_graph_buckets):
+                if z_max_length >= z_current_length:
+                    bucket: Bucket = self.cuda_graph_buckets[z_max_length]
                     break
             else:
                 bucket = None

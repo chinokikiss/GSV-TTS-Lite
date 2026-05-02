@@ -39,7 +39,7 @@ class TTS:
     def __init__(
         self,
         gpt_cache: list[tuple[int, int]] = [(1, 512), (1, 768), (1, 1024), (4, 512), (4, 1024)],
-        sovits_cache: list[int] = [50],
+        sovits_cache: list[int] = [55],
         models_dir: str = None,
         device: str = None,
         dtype: str = None,
@@ -292,7 +292,7 @@ class TTS:
         cut_mute_scale_map: dict = {"…": 2.0, ".": 1.5, "。": 1.5, "?": 1.5, "？": 1.5, "!": 1.5, "！": 1.5, ",": 0.8, "，": 0.8, ":": 0.8, "：": 0.8, ";": 0.8, "；": 0.8, "~": 0.8, "、": 0.6, "・": 0.6},
         stream_mode: Literal["token", "sentence"] = "token",
         stream_chunk: int = 25,
-        overlap_len: int = 10,
+        overlap_len: int = 5,
         boost_first_chunk: bool = True,
         top_k: int = 15,
         top_p: float = 1.0,
@@ -964,6 +964,7 @@ class TTS:
         prompt_audio_path: str,
         prompt_audio_text: str,
         text: str,
+        return_subtitles: bool = False,
         top_k: int = 15,
         top_p: float = 1.0,
         temperature: float = 1.0,
@@ -989,10 +990,11 @@ class TTS:
         def _infer_with_lock():
             with self._infer_lock:
                 return self.infer(
-                    spk_audio_path,
-                    prompt_audio_path,
-                    prompt_audio_text,
-                    text,
+                    spk_audio_path=spk_audio_path,
+                    prompt_audio_path=prompt_audio_path,
+                    prompt_audio_text=prompt_audio_text,
+                    text=text,
+                    return_subtitles=return_subtitles,
                     top_k=top_k,
                     top_p=top_p,
                     temperature=temperature,
@@ -1021,7 +1023,7 @@ class TTS:
         cut_mute_scale_map: dict = {"…": 2.0, ".": 1.5, "。": 1.5, "?": 1.5, "？": 1.5, "!": 1.5, "！": 1.5, ",": 0.8, "，": 0.8, ":": 0.8, "：": 0.8, ";": 0.8, "；": 0.8, "~": 0.8, "、": 0.6, "・": 0.6},
         stream_mode: Literal["token", "sentence"] = "token",
         stream_chunk: int = 25,
-        overlap_len: int = 10,
+        overlap_len: int = 5,
         boost_first_chunk: bool = True,
         top_k: int = 15,
         top_p: float = 1.0,
@@ -1107,6 +1109,8 @@ class TTS:
         repetition_penalty: float = 1.35,
         noise_scale: float = 0.5,
         speed: float = 1.0,
+        bert_batch_size: int = 20,
+        sovits_batch_size: int = 10,
         gpt_model: str = None,
         sovits_model: str = None,
         executor: ThreadPoolExecutor = None,
@@ -1126,10 +1130,10 @@ class TTS:
         def _infer_batched_with_lock():
             with self._infer_lock:
                 return self.infer_batched(
-                    spk_audio_paths,
-                    prompt_audio_paths,
-                    prompt_audio_texts,
-                    texts,
+                    spk_audio_paths=spk_audio_paths,
+                    prompt_audio_paths=prompt_audio_paths,
+                    prompt_audio_texts=prompt_audio_texts,
+                    texts=texts,
                     return_subtitles=return_subtitles,
                     is_cut_text=is_cut_text,
                     cut_minlen=cut_minlen,
@@ -1141,6 +1145,8 @@ class TTS:
                     repetition_penalty=repetition_penalty,
                     noise_scale=noise_scale,
                     speed=speed,
+                    bert_batch_size=bert_batch_size,
+                    sovits_batch_size=sovits_batch_size,
                     gpt_model=gpt_model,
                     sovits_model=sovits_model,
                 )

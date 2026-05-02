@@ -80,7 +80,7 @@ def get_sovits_weights(sovits_path, tts_config: Config):
         hps = utils.DictToAttrRecursive(dict_s2["config"])
         hps.model.semantic_frame_rate = "25hz"
         if version is None:
-            assert getattr(hps.model, 'version', None) is not None, "The Sovits model is not the v2/v2pro/v2proplus version. Please check the model file."
+            assert getattr(hps.model, 'version', None) in ["v2", "v2Pro", "v2ProPlus"], "The Sovits model is not the v2/v2pro/v2proplus version. Please check the model file."
         else:
             hps.model.version = version
         
