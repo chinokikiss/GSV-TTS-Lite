@@ -67,7 +67,7 @@
 | **RTX-PRO-6000** | 1122.72 | Enable |
 | **H200** | 886.47 | Enable |
 | **A100** | 660.73 | Enable |
-| **T4** | 243.45 | Disabled |
+| **T4** | 281.06 | Disabled |
 
 **Core optimization technologies:** CUDA Graph, Nested KV Cache, and Continuous Batching.
 
@@ -97,7 +97,7 @@ pip install torch torchvision torchaudio
 #### 2. GSV-TTS-Lite のインストール
 上記の基本環境が準備できれば、以下のコマンドを実行するだけで統合が完了します：
 ```bash 
-pip install gsv-tts-lite==0.3.17
+pip install gsv-tts-lite==0.3.18
 ```
 
 ### WebUI 可視化インターフェース
@@ -217,6 +217,7 @@ generator = tts.infer_stream(
     prompt_audio_path="examples\AnAn.ogg",
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
     text="へぇー、ここまでしてくれるんですね。",
+    stream_chunk = 25,
     return_subtitles=True,
     debug=False,
 )
