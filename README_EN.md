@@ -163,6 +163,7 @@ audio.play()
 tts.audio_queue.wait()
 # tts.audio_queue.stop() # Stop playback
 ```
+https://github.com/user-attachments/assets/72635b40-7287-4318-a5e9-aea93adfabf9
 
 #### 2. Stream Inference / Subtitle Synchronization
 ```python
@@ -229,6 +230,7 @@ tts.audio_queue.wait()
 subtitlesqueue.add(None, None)
 print()
 ```
+https://github.com/user-attachments/assets/3d2758b3-a283-48b0-960e-a9389dd73129
 
 #### 3. Batched Inference
 ```python
@@ -247,6 +249,7 @@ audios = tts.infer_batched(
 for i, audio in enumerate(audios):
     audio.save(f"audio{i}.wav")
 ```
+https://github.com/user-attachments/assets/c2edeb24-b2a8-4360-9d68-8866efbed30c
 
 #### 4. Voice Conversion
 ```python
