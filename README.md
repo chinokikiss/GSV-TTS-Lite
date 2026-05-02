@@ -115,7 +115,7 @@ pip install torch torchvision torchaudio
 #### 2. 安装 GSV-TTS-Lite
 若已准备好上述基础环境，可直接执行以下命令完成集成：
 ```bash 
-pip install gsv-tts-lite==0.3.18
+pip install gsv-tts-lite==0.4.0
 ```
 
 ### WebUI 可视化界面
@@ -205,15 +205,13 @@ class SubtitlesQueue:
 
             for subtitle in subtitles:
                 if subtitle["start_s"] > time.time() - last_t:
-                    while time.time() - last_t <= subtitle["start_s"]:
-                        time.sleep(0.01)
+                    time.sleep(subtitle["start_s"] - (time.time() - last_t))
 
                 if subtitle["end_s"] and subtitle["end_s"] > time.time() - last_t:
                     if subtitle["orig_idx_end"] > last_i:
                         print(text[last_i:subtitle["orig_idx_end"]], end="", flush=True)
                         last_i = subtitle["orig_idx_end"]
-                        while time.time() - last_t <= subtitle["end_s"]:
-                            time.sleep(0.01)
+                        time.sleep(subtitle["end_s"] - (time.time() - last_t))
 
         self.t = None
     
@@ -223,7 +221,7 @@ class SubtitlesQueue:
             self.t = threading.Thread(target=self.process, daemon=True)
             self.t.start()
 
-tts = TTS(use_bert=True)
+tts = TTS(use_bert=True, sovits_cache=[55]) # 55 = stream_chunk * 2 + overlap_len = 25 * 2 + 5
 
 # infer、infer_stream、infer_batched、infer_vc 其实都支持字级时间戳的返回，这里只是通过 infer_stream 举个例子
 subtitlesqueue = SubtitlesQueue()
@@ -235,6 +233,7 @@ generator = tts.infer_stream(
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
     text="へぇー、ここまでしてくれるんですね。",
     stream_chunk = 25,
+    overlap_len = 5,
     return_subtitles=True,
     debug=False,
 )
