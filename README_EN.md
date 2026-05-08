@@ -62,6 +62,8 @@ The currently supported languages are **Chinese, Japanese, and English**. The av
 | **Lite Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** Speed |
 | **Lite Version** | `Flash_Attn=On` | **133 ms** | **0.108** | **0.8 GB** | 🔥 **3.3x** Speed |
 
+As shown, **GSV-TTS-Lite** achieves **3x ~ 4x** speed improvements while **halving** the VRAM usage! 🚀
+
 | GPU Model | Throughput (tok/s) | FlashAttention2 |
 | :--- | :---: | :---: |
 | **RTX-PRO-6000** | 1122.72 | Enable |
@@ -70,8 +72,6 @@ The currently supported languages are **Chinese, Japanese, and English**. The av
 | **T4** | 281.06 | Disabled |
 
 **Core optimization technologies:** CUDA Graph, Nested KV Cache, and Continuous Batching.
-
-As shown, **GSV-TTS-Lite** achieves **3x ~ 4x** speed improvements while **halving** the VRAM usage! 🚀
 <br>
 
 ## Deployment (For Developers)
@@ -97,7 +97,7 @@ pip install torch torchvision torchaudio
 #### 2.	Install GSV-TTS-Lite
 If you have prepared the above basic environment, you can directly execute the following command to complete the integration:
 ```bash 
-pip install gsv-tts-lite==0.4.0
+pip install gsv-tts-lite==0.4.1
 ```
 
 ### WebUI Visual Interface
@@ -205,7 +205,7 @@ class SubtitlesQueue:
             self.t = threading.Thread(target=self.process, daemon=True)
             self.t.start()
 
-tts = TTS(sovits_cache=[55]) # 55 = stream_chunk * 2 + overlap_len = 25 * 2 + 5
+tts = TTS(sovits_cache=[50, 55]) # 50 = stream_chunk * 2 = 25 * 2, 55 = stream_chunk * 2 + overlap_len = 25 * 2 + 5
 
 # infer, infer_stream, and infer_batched all support returning character-level timestamps; infer_stream is used here just as an example.
 subtitlesqueue = SubtitlesQueue()

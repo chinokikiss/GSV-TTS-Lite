@@ -62,6 +62,8 @@
 | **Lite Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** Speed |
 | **Lite Version** | `Flash_Attn=On` | **133 ms** | **0.108** | **0.8 GB** | 🔥 **3.3x** Speed |
 
+可以看到，**GSV-TTS-Lite** 实现了 **3x ~ 4x** 速度提升，且显存占用 **减半**！🚀
+
 | GPU Model | Throughput (tok/s) | FlashAttention2 |
 | :--- | :---: | :---: |
 | **RTX-PRO-6000** | 1122.72 | Enable |
@@ -70,8 +72,6 @@
 | **T4** | 281.06 | Disabled |
 
 **Core optimization technologies:** CUDA Graph, Nested KV Cache, and Continuous Batching.
-
-可以看到，**GSV-TTS-Lite** 实现了 **3x ~ 4x** 速度提升，且显存占用 **减半**！🚀
 <br>
 
 ## 整合包下载 (One-click Download)
@@ -115,7 +115,7 @@ pip install torch torchvision torchaudio
 #### 2. 安装 GSV-TTS-Lite
 若已准备好上述基础环境，可直接执行以下命令完成集成：
 ```bash 
-pip install gsv-tts-lite==0.4.0
+pip install gsv-tts-lite==0.4.1
 ```
 
 ### WebUI 可视化界面
@@ -222,7 +222,7 @@ class SubtitlesQueue:
             self.t = threading.Thread(target=self.process, daemon=True)
             self.t.start()
 
-tts = TTS(use_bert=True, sovits_cache=[55]) # 55 = stream_chunk * 2 + overlap_len = 25 * 2 + 5
+tts = TTS(use_bert=True, sovits_cache=[50, 55]) # 50 = stream_chunk * 2 = 25 * 2, 55 = stream_chunk * 2 + overlap_len = 25 * 2 + 5
 
 # infer、infer_stream、infer_batched、infer_vc 其实都支持字级时间戳的返回，这里只是通过 infer_stream 举个例子
 subtitlesqueue = SubtitlesQueue()
