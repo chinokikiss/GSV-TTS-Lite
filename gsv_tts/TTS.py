@@ -39,11 +39,10 @@ class TTS:
     def __init__(
         self,
         gpt_cache: list[tuple[int, int]] = [(1, 512), (1, 768), (1, 1024), (4, 512), (4, 1024)],
-        sovits_cache: list[int] = [55],
+        sovits_cache: list[int] = [50, 55],
         models_dir: str = None,
         device: str = None,
         dtype: str = None,
-        compile_mode: Literal[None, "default-optimized", "max-optimized"] = None,
         use_flash_attn: bool = False,
         use_bert: bool = False,
         auto_bert: bool = True,
@@ -60,10 +59,6 @@ class TTS:
             models_dir (str): The directory path containing the pretrained model files.
             device (str): The device to run the model on.
             dtype (str): The data type for model inference (e.g., "float16", "bfloat16", "float32").
-            compile_mode (Literal[None, "default-optimized", "max-optimized"]): Specifies the optimization mode for `torch.compile`. `triton` needs to be installed.
-                - None: Disable compilation.
-                - "default-optimized": Standard inference optimization for SoVITS.
-                - "max-optimized": Full-stack inference optimization for GPT, SoVITS.
             use_flash_attn (bool): Whether to enable Flash Attention for faster inference.
             use_bert (bool): Whether to use BERT for enhanced Chinese semantic understanding. If True, BERT is loaded at initialization.
             auto_bert (bool): Whether to automatically load BERT when Chinese text is detected. Only effective when use_bert=False. Default is True.
@@ -96,7 +91,6 @@ class TTS:
         self.models_dir = models_dir
         if global_config.models_dir is None: global_config.models_dir = models_dir
         if global_config.use_jieba_fast is None: global_config.use_jieba_fast = use_jieba_fast
-        self.tts_config.compile_mode = compile_mode
         self.tts_config.use_flash_attn = use_flash_attn
         self.tts_config.gpt_cache = gpt_cache
         self.tts_config.sovits_cache = sovits_cache
@@ -1653,7 +1647,7 @@ class TTS:
             
         return tail_offset
     
-    def _fade(self, audio, fade_len=3200):
+    def _fade(self, audio, fade_len=1600):
         audio = audio.clone()
         fade_in_vec = torch.linspace(0, 1, fade_len, device=audio.device)
         fade_out_vec = torch.linspace(1, 0, fade_len, device=audio.device)

@@ -96,7 +96,7 @@ def get_sovits_weights(sovits_path, tts_config: Config):
         vq_model.to(tts_config.device, tts_config.dtype)
 
     vq_model.eval()
-    vq_model.initialize_runtime(tts_config.dtype, tts_config.device, tts_config.sovits_cache, tts_config.compile_mode)
+    vq_model.initialize_runtime(tts_config.dtype, tts_config.device, tts_config.sovits_cache)
 
     sovits = Sovits(vq_model, hps)
 
@@ -163,7 +163,7 @@ def get_gpt_weights(gpt_path, tts_config: Config):
         t2s_model = t2s_model.to(tts_config.device, tts_config.dtype)
 
     t2s_model.eval()
-    t2s_model.initialize_runtime(tts_config.dtype, tts_config.device, tts_config.gpt_cache, tts_config.compile_mode)
+    t2s_model.initialize_runtime(tts_config.dtype, tts_config.device, tts_config.gpt_cache)
 
     gpt = Gpt(t2s_model, config)
 

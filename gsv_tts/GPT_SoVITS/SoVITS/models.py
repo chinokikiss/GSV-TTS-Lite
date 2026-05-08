@@ -317,19 +317,14 @@ class SynthesizerTrn(nn.Module):
             self.ge_to512 = nn.Linear(gin_channels, 512)
             self.prelu = nn.PReLU(num_parameters=gin_channels)
 
-        self.cuda_graph_buckets = {}
+        self.cuda_graph_buckets = []
 
     @torch.inference_mode()
-    def initialize_runtime(self, dtype, device, sovits_caches, compile_mode):
+    def initialize_runtime(self, dtype, device, sovits_caches):
         batch_size = 1
 
         # 检查是否使用 CUDA Graph（仅 CUDA 设备支持）
         use_cuda_graph = device.type == "cuda"
-
-        if compile_mode == "default-optimized":
-            self.flow_dec = torch.compile(self.flow_dec, mode="default", dynamic=True)
-        elif compile_mode == "max-optimized":
-            self.flow_dec = torch.compile(self.flow_dec, mode="max-autotune-no-cudagraphs", dynamic=True)
 
         if use_cuda_graph:
             s = torch.cuda.Stream()
@@ -339,15 +334,23 @@ class SynthesizerTrn(nn.Module):
             stream_context = torch.no_grad()
 
         with stream_context:
-            for sovits_cache in sovits_caches:
-                self.cuda_graph_buckets[sovits_cache] = Bucket()
-                bucket: Bucket = self.cuda_graph_buckets[sovits_cache]
+            sovits_caches = sorted(sovits_caches)
 
+            for i in range(-1, -len(sovits_caches)-1, -1):
+                sovits_cache = sovits_caches[i]
+                self.cuda_graph_buckets.insert(0, Bucket())
+                bucket: Bucket = self.cuda_graph_buckets[0]
                 bucket.sovits_cache = sovits_cache
 
-                bucket.flow_z_p_padded = torch.zeros((batch_size, self.enc_p.latent_channels, sovits_cache), dtype=dtype, device=device)
-                bucket.flow_y_mask_padded = torch.zeros((batch_size, 1, sovits_cache), dtype=dtype, device=device)
-                bucket.flow_ge = torch.zeros((batch_size, self.gin_channels, 1), dtype=dtype, device=device)
+                if i == -1:
+                    bucket.flow_z_p_padded = torch.zeros((batch_size, self.enc_p.latent_channels, sovits_cache), dtype=dtype, device=device)
+                    bucket.flow_y_mask_padded = torch.zeros((batch_size, 1, sovits_cache), dtype=dtype, device=device)
+                    bucket.flow_ge = torch.zeros((batch_size, self.gin_channels, 1), dtype=dtype, device=device)
+                else:
+                    max_bucket: Bucket = self.cuda_graph_buckets[-1]
+                    bucket.flow_z_p_padded = max_bucket.flow_z_p_padded[:, :, :sovits_cache]
+                    bucket.flow_y_mask_padded = max_bucket.flow_y_mask_padded[:, :, :sovits_cache]
+                    bucket.flow_ge = max_bucket.flow_ge
 
                 # 预热运行
                 for _ in range(3):
@@ -402,9 +405,9 @@ class SynthesizerTrn(nn.Module):
 
         if cuda_graph:
             z_current_length = z_p.size(-1)
-            for z_max_length in sorted(self.cuda_graph_buckets):
-                if z_max_length >= z_current_length:
-                    bucket: Bucket = self.cuda_graph_buckets[z_max_length]
+            for bucket in self.cuda_graph_buckets:
+                bucket: Bucket = bucket
+                if bucket.sovits_cache >= z_current_length:
                     break
             else:
                 bucket = None

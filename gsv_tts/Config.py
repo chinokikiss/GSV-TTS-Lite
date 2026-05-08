@@ -92,8 +92,6 @@ class Config:
         self.gpt_cache = None
         self.sovits_cache = None
 
-        self.compile_mode = None
-
         self.cnroberta = None
 
 

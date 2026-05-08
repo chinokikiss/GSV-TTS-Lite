@@ -201,12 +201,9 @@ class Text2SemanticDecoder(nn.Module):
         self.cuda_graph_buckets = {}
     
     @torch.inference_mode()
-    def initialize_runtime(self, dtype, device, gpt_cache, compile_mode):
+    def initialize_runtime(self, dtype, device, gpt_cache):
         self.ar_text_position.extend_pe(torch.tensor(0.0, dtype=dtype, device=device).expand(1, 4000))
         self.ar_audio_position.extend_pe(torch.tensor(0.0, dtype=dtype, device=device).expand(1, 4000))
-
-        if compile_mode == "max-optimized":
-            self.t2s_transformer.process_prompt = torch.compile(self.t2s_transformer.process_prompt, mode="max-autotune-no-cudagraphs", dynamic=True)
 
         for batch_size, max_kv_cache in gpt_cache:
             if batch_size in self.cuda_graph_buckets:
@@ -615,7 +612,7 @@ class Text2SemanticDecoder(nn.Module):
                 pre_tokens[batch_indices, bucket.kv_cache_len] = samples.squeeze()
                 
                 if idx % check_interval == 0:
-                    is_reached = bucket.kv_cache_len == (bucket.max_kv_cache // check_interval) * check_interval
+                    is_reached = bucket.kv_cache_len + check_interval >= bucket.max_kv_cache
                     is_eos_generated = samples[:, 0] == self.EOS
                     should_stop_seq = is_eos_generated | is_reached
                     finished = ~ignore_batch & should_stop_seq
