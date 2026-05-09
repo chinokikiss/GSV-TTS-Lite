@@ -19,6 +19,12 @@
       <a href="https://github.com/chinokikiss/GSV-TTS-Lite/stargazers">
         <img src="https://img.shields.io/github/stars/chinokikiss/GSV-TTS-Lite?style=for-the-badge&color=yellow&logo=github" alt="GitHub stars">
       </a>
+      <a href="https://pepy.tech/project/gsv-tts-lite">
+        <img src="https://img.shields.io/pepy/dt/gsv-tts-lite?style=for-the-badge&color=brightgreen" alt="Downloads">
+      </a>
+      <a href="https://deepwiki.com/chinokikiss/GSV-TTS-Lite/1.1-installation-and-quick-start">
+        <img src="https://img.shields.io/badge/Documentation-DeepWiki-blueviolet.svg?style=for-the-badge&logo=gitbook" alt="Documentation">
+      </a>
   </p>
 
   <p>

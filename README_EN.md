@@ -19,6 +19,12 @@
       <a href="https://github.com/chinokikiss/GSV-TTS-Lite/stargazers">
         <img src="https://img.shields.io/github/stars/chinokikiss/GSV-TTS-Lite?style=for-the-badge&color=yellow&logo=github" alt="GitHub stars">
       </a>
+      <a href="https://pepy.tech/project/gsv-tts-lite">
+        <img src="https://img.shields.io/pepy/dt/gsv-tts-lite?style=for-the-badge&color=brightgreen" alt="Downloads">
+      </a>
+      <a href="https://deepwiki.com/chinokikiss/GSV-TTS-Lite/1.1-installation-and-quick-start">
+        <img src="https://img.shields.io/badge/Documentation-DeepWiki-blueviolet.svg?style=for-the-badge&logo=gitbook" alt="Documentation">
+      </a>
   </p>
 
   <p>
@@ -264,7 +270,7 @@ https://github.com/user-attachments/assets/c2edeb24-b2a8-4360-9d68-8866efbed30c
 ```python
 from gsv_tts import TTS
 
-tts = TTS()
+tts = TTS(always_load_cnhubert=True)
 
 # Although infer_vc supports zero-shot voice conversion and offers convenience, its conversion quality still has room for improvement compared to specialized voice conversion models like RVC or SVC.
 audio = tts.infer_vc(
