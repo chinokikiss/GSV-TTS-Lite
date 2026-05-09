@@ -22,7 +22,7 @@
       <a href="https://pepy.tech/project/gsv-tts-lite">
         <img src="https://img.shields.io/pepy/dt/gsv-tts-lite?style=for-the-badge&color=brightgreen" alt="Downloads">
       </a>
-      <a href="https://deepwiki.com/chinokikiss/GSV-TTS-Lite/1.1-installation-and-quick-start">
+      <a href="https://deepwiki.com/chinokikiss/GSV-TTS-Lite">
         <img src="https://img.shields.io/badge/Documentation-DeepWiki-blueviolet.svg?style=for-the-badge&logo=gitbook" alt="Documentation">
       </a>
   </p>
