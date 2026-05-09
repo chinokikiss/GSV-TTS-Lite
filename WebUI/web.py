@@ -516,7 +516,8 @@ if __name__ == "__main__":
     parser.add_argument("--gpt_batch_size", type=int, default=8, help="GPT 最大并行推理大小")
     parser.add_argument("--use_bert", type=str2bool, default=True, help="使用BERT提升中文语义理解能力")
     parser.add_argument("--use_flash_attn", type=str2bool, default=False, help="使用Flash Attn加速推理")
-    parser.add_argument("--use_asr", type=str2bool, default=True, help="使用ASR自动识别音频文本")
+    parser.add_argument("--use_asr", type=str2bool, default=False, help="使用ASR自动识别音频文本")
+    parser.add_argument("--models_dir", type=str, default="models", help="预训练模型目录")
     parser.add_argument("--port", type=int, default=9881, help="Gradio 端口号")
     parser.add_argument("--share", action="store_true", help="是否开启公网分享")
     
@@ -585,7 +586,7 @@ if __name__ == "__main__":
         sovits_cache=[],
         use_bert=args.use_bert,
         use_flash_attn=args.use_flash_attn,
-        models_dir="models",
+        models_dir=args.models_dir,
     )
     
     demo.launch(

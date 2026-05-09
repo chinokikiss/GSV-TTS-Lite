@@ -657,19 +657,19 @@ class TTS:
 
                     ge = None
                     for audio_path, weight in spk_audio_path.items():
-                        if audio_path not in self.spk_audio_cache:
-                            self.cache_spk_audio(audio_path)
+                        if (audio_path not in self.spk_audio_cache) or (sovits_model not in self.spk_audio_cache[audio_path]["ge"]):
+                            self.cache_spk_audio(audio_path, sovits_model=sovits_model)
 
                         if ge is None:
-                            ge = self.spk_audio_cache[audio_path]["ge"] * (weight / weight_sum)
+                            ge = self.spk_audio_cache[audio_path]["ge"][sovits_model] * (weight / weight_sum)
                         else:
-                            ge += self.spk_audio_cache[audio_path]["ge"] * (weight / weight_sum)
+                            ge += self.spk_audio_cache[audio_path]["ge"][sovits_model] * (weight / weight_sum)
                 else:
-                    if spk_audio_path not in self.spk_audio_cache:
-                        self.cache_spk_audio(spk_audio_path)
+                    if (spk_audio_path not in self.spk_audio_cache) or (sovits_model not in self.spk_audio_cache[spk_audio_path]["ge"]):
+                        self.cache_spk_audio(spk_audio_path, sovits_model=sovits_model)
 
-                    ge = self.spk_audio_cache[spk_audio_path]["ge"]
-                
+                    ge = self.spk_audio_cache[spk_audio_path]["ge"][sovits_model]
+
                 phoneme_ids = torch.LongTensor(phones1 + phones2).to(self.tts_config.device)
                 bert = torch.cat([bert1, bert2])
                 
@@ -1174,18 +1174,18 @@ class TTS:
 
             ge = None
             for audio_path, weight in spk_audio_path.items():
-                if audio_path not in self.spk_audio_cache:
-                    self.cache_spk_audio(audio_path)
+                if (audio_path not in self.spk_audio_cache) or (sovits_model not in self.spk_audio_cache[audio_path]["ge"]):
+                    self.cache_spk_audio(audio_path, sovits_model=sovits_model)
 
                 if ge is None:
-                    ge = self.spk_audio_cache[audio_path]["ge"] * (weight / weight_sum)
+                    ge = self.spk_audio_cache[audio_path]["ge"][sovits_model] * (weight / weight_sum)
                 else:
-                    ge += self.spk_audio_cache[audio_path]["ge"] * (weight / weight_sum)
+                    ge += self.spk_audio_cache[audio_path]["ge"][sovits_model] * (weight / weight_sum)
         else:
-            if spk_audio_path not in self.spk_audio_cache:
-                self.cache_spk_audio(spk_audio_path)
+            if (spk_audio_path not in self.spk_audio_cache) or (sovits_model not in self.spk_audio_cache[spk_audio_path]["ge"]):
+                self.cache_spk_audio(spk_audio_path, sovits_model=sovits_model)
 
-            ge = self.spk_audio_cache[spk_audio_path]["ge"]
+            ge = self.spk_audio_cache[spk_audio_path]["ge"][sovits_model]
 
         sovits = self.sovits_models[sovits_model]
 
@@ -1304,6 +1304,9 @@ class TTS:
             for model_path in model_paths:
                 if model_path in self.sovits_models:
                     del self.sovits_models[model_path]
+                    for audio in self.spk_audio_cache.values():
+                        if model_path in audio["ge"]:
+                            del audio["ge"][model_path]
                     logging.info(f'Unloaded SoVITS model: {model_path}')
                 else:
                     logging.warning(f'SoVITS model {model_path} not found.')
@@ -1329,7 +1332,7 @@ class TTS:
         return list(self.sovits_models.keys())
     
     @torch.inference_mode()
-    def cache_spk_audio(self, *spk_audio_paths: str):
+    def cache_spk_audio(self, *spk_audio_paths: str, sovits_model:str=None):
         """
         Processes and caches speaker audio embeddings for voice cloning.
 
@@ -1341,21 +1344,32 @@ class TTS:
                 logging.error('No SoVITS models are currently loaded! Cannot cache speaker audio.')
                 return
 
-            model = self.sovits_models[next(iter(self.sovits_models))]
+            if sovits_model is None:
+                sovits_model = next(iter(self.sovits_models))
+
+            if sovits_model not in self.sovits_models:
+                logging.error(f'The SoVITS model {sovits_model} is not currently loaded! Cannot cache speaker audio.')
+                return
+
+            model = self.sovits_models[sovits_model]
 
             if self.sv_model is None:
                 self.sv_model = ERes2Net(self.sv_path, self.tts_config)
 
             for spk_audio_path in spk_audio_paths:
                 refers, audio_tensor = self._get_spec(model.hps, spk_audio_path)
-                sv_emb = self.sv_model.compute_embedding3(audio_tensor)
-                ge = model.vq_model.get_ge(refers, sv_emb)
-                self.spk_audio_cache[spk_audio_path] = {
-                    "ge": ge, 
-                    "sv_emb": sv_emb
-                }
+                if spk_audio_path not in self.spk_audio_cache:
+                    sv_emb = self.sv_model.compute_embedding3(audio_tensor)
+                    ge = model.vq_model.get_ge(refers, sv_emb)
+                    self.spk_audio_cache[spk_audio_path] = {
+                        "ge": {sovits_model: ge},
+                        "sv_emb": sv_emb,
+                    }
+                elif sovits_model not in self.spk_audio_cache[spk_audio_path]["ge"]:
+                    ge = model.vq_model.get_ge(refers, self.spk_audio_cache[spk_audio_path]["sv_emb"])
+                    self.spk_audio_cache[spk_audio_path]["ge"][sovits_model] = ge
                 logging.info(f'Cached speaker audio: {spk_audio_path}')
-            
+
             if not self.always_load_sv:
                 self.sv_model = None
 
