@@ -69,6 +69,34 @@ def enhance_audio(audio_data, sample_rate):
 
     return normalized_audio.flatten()
 
+S1_MODEL_PATH = [
+    "GPT_weights_v2",
+    "GPT_weights_v2Pro",
+    "GPT_weights_v2ProPlus",
+    "GPT_weights_v3",
+    "GPT_weights_v4",
+]
+S2_MODEL_PATH = [
+    "SoVITS_weights_v2",
+    "SoVITS_weights_v2Pro",
+    "SoVITS_weights_v2ProPlus",
+]
+
+def find_gsv_models():
+    if not os.path.isdir(GSV_ROOT_DIR):
+        return gr.update(choices=['']), gr.update(choices=[''])
+    s1 = ['']
+    s2 = ['']
+    for item in S2_MODEL_PATH:
+        cd = os.path.join(GSV_ROOT_DIR, item)
+        if os.path.isdir(cd):
+            s2 += [(f"{item}/{i}",os.path.join(GSV_ROOT_DIR, item, i)) for i in os.listdir(cd) if i.endswith(".pth")]
+    for item in S1_MODEL_PATH:
+        cd = os.path.join(GSV_ROOT_DIR, item)
+        if os.path.isdir(cd):
+            s1 += [(f"{item}/{i}", os.path.join(GSV_ROOT_DIR, item, i)) for i in os.listdir(cd) if i.endswith(".ckpt")]
+    return gr.update(choices=s1), gr.update(choices=s2)
+
 
 def upload_gpt(new_gpt):
     if not new_gpt is None:
@@ -324,19 +352,19 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         with gr.TabItem("文本转语音 (TTS)"):
 
             history_state = gr.State([])
-            
+
             with gr.Group():
-                gr.Markdown("### 第一步：加载模型文件")
+                gr.Markdown("### 第一步：加载模型文件(可手动填写路径，留空使用默认模型)")
                 with gr.Row():
-                    gpt_path = gr.Textbox(label="1. GPT 模型路径 (.ckpt)", placeholder="留空则默认模型", scale=1)
-                    sovits_path = gr.Textbox(label="2. SoVITS 模型路径 (.pth)", placeholder="留空则默认模型", scale=1)
+                    gpt_path = gr.Dropdown(label="1. GPT 模型路径 (.ckpt)", choices=[''], value='', allow_custom_value=True, scale=1)
+                    sovits_path = gr.Dropdown(label="2. SoVITS 模型路径 (.pth)", choices=[''], value='', allow_custom_value=True, scale=1)
 
             with gr.Row():
                 with gr.Column(scale=1):
                     gr.Markdown("### 第二步：合成内容（支持多说话人，支持停顿标签）")
                     text = gr.Textbox(label="合成目标文本", lines=5, value="谁罕见?啊？骂谁罕见！")
                     enable_enhance = gr.Checkbox(label="启用音频增强", value=True)
-                    
+
                     with gr.Accordion("生成参数", open=False):
                         speed = gr.Slider(0.5, 2.0, 1.0, step=0.1, label="语速")
                         noise_scale = gr.Slider(0.1, 1.0, 0.5, step=0.05, label="噪声比例")
@@ -346,14 +374,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         rep_penalty = gr.Slider(1.0, 2.0, 1.35, label="重复惩罚")
                         sovits_batch_size = gr.Number(label="SoVITS最大并行推理大小", value=10)
                         is_cut_text = gr.Checkbox(label="是否切分文本", value=True)
-                        #cut_punds = gr.Textbox(label="切分标点", value='{"。", ".", "?", "？", "!", "！", ",", "，", ":", "：", ";", "；", "、"}')
+                        # cut_punds = gr.Textbox(label="切分标点", value='{"。", ".", "?", "？", "!", "！", ",", "，", ":", "：", ";", "；", "、"}')
                         cut_minlen = gr.Number(label="最小切分长度", value=10)
                         cut_mute = gr.Number(label="切分静音时长(s)", value=0.2)
                         cut_mute_scale_map = gr.Textbox(label="标点静音缩放映射", value='{".": 1.5, "。": 1.5, "?": 1.5, "？": 1.5, "!": 1.5, "！": 1.5, ",": 0.8, "，": 0.8, "、": 0.6}')
 
                 with gr.Column(scale=1):
                     gr.Markdown("### 第三步：风格与音色参考")
-                    
+
                     with gr.Row():
                         preset_dropdown = gr.Dropdown(choices=[], label="加载预设", scale=2)
                         preset_name = gr.Textbox(label="预设名称", placeholder="保存当前设置为...", scale=2)
@@ -373,7 +401,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     with gr.Column(scale=2):
                         output_audio = gr.Audio(label="生成的音频结果")
                         log_output = gr.Textbox(label="系统状态信息")
-                    
+
                     with gr.Column(scale=1):
                         gr.Markdown("### 🕒 最近生成历史")
                         history_display = gr.Dataset(
@@ -383,35 +411,33 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                             type="values"
                         )
 
-
         with gr.TabItem("音色迁移 (VC)"):
             gr.Markdown("### 将一段音频的内容迁移到另一个人的音色上")
-            
+
             with gr.Row():
                 with gr.Column(scale=1):
                     gr.Markdown("#### 1. 源音频参考")
                     vc_source_audio = gr.Audio(label="上传源音频", type="filepath")
                     vc_source_text = gr.Textbox(label="源音频对应文本", placeholder="输入源音频中的文本内容", lines=2)
-                    
+
                     gr.Markdown("#### 2. 目标音色参考（支持多音色融合）")
                     vc_multi_spk_files = gr.File(label="可上传多个音色参考音频", file_count="multiple")
                     vc_spk_weights = gr.Textbox(label="音色权重 (用冒号分隔)", value="1.0", placeholder="例如: 1.0: 1.0")
-                
+
                 with gr.Column(scale=1):
                     gr.Markdown("#### 3. 执行与输出")
                     vc_btn = gr.Button("🚀 开始音色迁移", variant="primary", size="lg")
-                    
+
                     vc_output_audio = gr.Audio(label="音色迁移结果", interactive=False)
                     vc_log_output = gr.Textbox(label="处理日志", lines=5)
-
 
     def update_history(history_entry, current_history):
         if history_entry is None:
             return current_history, gr.update(samples=current_history)
-        
+
         current_history.insert(0, history_entry)
         current_history = current_history[:10]
-        
+
         return current_history, gr.update(samples=current_history)
 
     def load_from_history(selected_row_data):
@@ -425,7 +451,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         inputs=[preset_name, prompt_audio, prompt_text, multi_spk_files, spk_weights],
         outputs=[preset_dropdown, log_output]
     )
-    
+
     preset_dropdown.change(
         fn=load_preset,
         inputs=[preset_dropdown],
@@ -460,10 +486,18 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         fn=upload_gpt,
         inputs=gpt_path
     )
+    gpt_path.focus(
+        fn=find_gsv_models,
+        outputs=[gpt_path, sovits_path]
+    )
 
     sovits_path.change(
         fn=upload_sovits,
         inputs=sovits_path
+    )    
+    sovits_path.focus(
+        fn=find_gsv_models,
+        outputs=[gpt_path, sovits_path]
     )
 
     temp_history_entry = gr.State()
@@ -520,9 +554,11 @@ if __name__ == "__main__":
     parser.add_argument("--models_dir", type=str, default="models", help="预训练模型目录")
     parser.add_argument("--port", type=int, default=9881, help="Gradio 端口号")
     parser.add_argument("--share", action="store_true", help="是否开启公网分享")
+    parser.add_argument("--gsv_root_dir", type=str, default=".", help="原版GSV根目录，用于自动扫描模型")
     
     args, _ = parser.parse_known_args()
 
+    GSV_ROOT_DIR = args.gsv_root_dir
     HISTORY_DIR = "output_history"
     os.makedirs(HISTORY_DIR, exist_ok=True)
 
