@@ -44,6 +44,10 @@ def text_to_phonemes(text, language):
         norm_text = global_config.english_g2p.text_normalize(text)
         phones, word2ph = global_config.english_g2p.g2p(norm_text)
     
+    if word2ph["word"] and word2ph["word"][-1] not in Pause.pause_map:
+        phones.append("SP")
+        word2ph["ph"][-1] += 1
+    
     assert len(phones) == sum(word2ph["ph"]), f"length mismatch: The length of phones is {len(phones)}, while the total of word2ph is {sum(word2ph['ph'])}"
     
     # 替换停顿符
