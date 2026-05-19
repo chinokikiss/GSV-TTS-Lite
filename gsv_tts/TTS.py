@@ -1404,6 +1404,11 @@ class TTS:
                 prompt_audio_texts = [prompt_audio_texts]*len(prompt_audio_paths)
 
             for prompt_audio_path, prompt_audio_text in zip(prompt_audio_paths, prompt_audio_texts):
+                if not prompt_audio_text or not prompt_audio_text.strip():
+                    raise ValueError(
+                        "Prompt audio text is empty. "
+                        "Please provide the text transcription for the reference audio (风格参考音频对应文本)."
+                    )
                 prompt = self._get_prompt(self.cnhubert_model, model, prompt_audio_path)
                 phones1, _, bert1, _ = get_phones_and_bert(prompt_audio_text, self.tts_config)
                 self.prompt_audio_cache[prompt_audio_path] = {
