@@ -157,14 +157,19 @@ class LangSegment():
             language = LangSegment._lang_classify(cleans_text)
             prev_language , prev_text = LangSegment._get_prev_data(words)
             if len(cleans_text) <= 3 and LangSegment._is_chinese(cleans_text):
-                if EOS and LANG_EOS: language = LANG_ZH if len(cleans_text) <= 1 else language
-                elif LangSegment._is_japanese_kana(cleans_text):language = LANG_JA
+                if LangSegment._is_japanese_kana(cleans_text):
+                    language = LANG_JA
                 else:
                     LANG_UNKNOWN = f'{LANG_ZH}|{LANG_JA}'
-                    match_end,match_char = LangSegment._match_ending(text, -1)
                     referen = prev_language in LANG_UNKNOWN or LANG_UNKNOWN in prev_language if prev_language else False
-                    if match_char in "。.": language = prev_language if referen and len(words) > 0 else language
-                    else:language = f"{LANG_UNKNOWN}|…"
+                    if referen and len(words) > 0:
+                        language = prev_language
+                    elif EOS and LANG_EOS and len(cleans_text) <= 1:
+                        language = LANG_ZH
+                    else:
+                        match_end,match_char = LangSegment._match_ending(text, -1)
+                        if match_char in "。.?？": language = prev_language if referen and len(words) > 0 else language
+                        else:language = f"{LANG_UNKNOWN}|…"
             text,*_ = re.subn(number_tags , LangSegment._restore_number , text )
             LangSegment._addwords(words,language,text)
             pass
@@ -298,5 +303,40 @@ class LangSegment():
         LangSegment._lang_count = None
         LangSegment._text_lasts = text
         text = LangSegment._parse_symbols(text)
+        for wait_item in LangSegment._text_waits:
+            lang = wait_item["lang"].split("|")[0]
+            if text:
+                prev_lang = text[-1]["lang"]
+                if prev_lang and prev_lang in wait_item["lang"]:
+                    lang = prev_lang
+            LangSegment._saveData(text, lang, wait_item["text"])
+        LangSegment._text_waits = []
         LangSegment._text_langs = text
+        text = LangSegment._post_process_short_cjk(text)
         return text
+
+    @staticmethod
+    def _is_cjk_only(s):
+        return bool(re.match(r'^[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+$', re.sub(r'[^\w]', '', s)))
+
+    @staticmethod
+    def _post_process_short_cjk(segments):
+        if not segments or len(segments) <= 1:
+            return segments
+        cjk_pattern = re.compile(r'[\u4e00-\u9fff]')
+        for i, seg in enumerate(segments):
+            if seg['lang'] != 'zh':
+                continue
+            cjk_chars = cjk_pattern.findall(seg['text'])
+            if len(cjk_chars) > 3:
+                continue
+            if LangSegment._is_japanese_kana(seg['text']):
+                continue
+            neighbor_lang = None
+            if i > 0 and segments[i - 1]['lang'] in ('ja', 'ko'):
+                neighbor_lang = segments[i - 1]['lang']
+            elif i < len(segments) - 1 and segments[i + 1]['lang'] in ('ja', 'ko'):
+                neighbor_lang = segments[i + 1]['lang']
+            if neighbor_lang:
+                segments[i] = {'lang': neighbor_lang, 'text': seg['text']}
+        return segments
