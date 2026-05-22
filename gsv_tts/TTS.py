@@ -786,9 +786,11 @@ class TTS:
                         audio = audio_batch[last_actual_len:actual_len]
 
                         head_offset = self._find_head_threshold_offsets(audio)
-                        audio = audio[head_offset:].float().cpu().numpy()
+                        tail_offset = self._find_tail_threshold_offsets(audio)
+                        audio = audio[head_offset:-tail_offset].float().cpu().numpy()
 
                         subtitle[0]["start_s"] += head_offset / self.samplerate
+                        subtitle[-1]["end_s"] -= tail_offset / self.samplerate
 
                         subtitle = sub2text_index(subtitle, all_norm_text[curr_orig_indices[j]], texts[curr_orig_indices[j]])
 
@@ -802,7 +804,8 @@ class TTS:
                         last_actual_len = actual_len
 
                         head_offset = self._find_head_threshold_offsets(audio)
-                        audio = audio[head_offset:].float().cpu().numpy()
+                        tail_offset = self._find_tail_threshold_offsets(audio)
+                        audio = audio[head_offset:-tail_offset].float().cpu().numpy()
 
                         generated_audios.append(audio)
 
@@ -1633,6 +1636,24 @@ class TTS:
             head_offset = search_audio_head.shape[0]
             
         return head_offset
+
+    def _find_tail_threshold_offsets(self, audio, threshold=0.02, frame_length=512, hop_length=256, search_len=64000, margin=3200):
+        search_audio_tail = audio[-search_len:]
+        actual_len = search_audio_tail.shape[0]
+        frames_tail = search_audio_tail.unfold(0, frame_length, hop_length)
+        rms_tail = torch.sqrt(torch.mean(frames_tail**2, dim=1))
+        
+        tail_mask = rms_tail > threshold
+        tail_indices = torch.nonzero(tail_mask)
+        
+        if tail_indices.numel() > 0:
+            tail_frame_idx = tail_indices[-1].item()
+            tail_offset = actual_len - (tail_frame_idx * hop_length)
+            tail_offset = max(1, tail_offset-margin)
+        else:
+            tail_offset = search_audio_tail.shape[0]
+            
+        return tail_offset
     
     def _get_subtitles(self, word2ph, assign, speed, last_end_s = 0):
         frame_time = (1 / self.sovits_hz) / speed
