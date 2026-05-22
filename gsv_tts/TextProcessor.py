@@ -75,6 +75,12 @@ def get_phones_and_bert(texts, tts_config: Config):
     for text in texts:
         segments = LangSegment.getTexts(text)
 
+        if not segments:
+            raise ValueError(
+                f"Text processing produced no valid segments for input: {repr(text)}. "
+                "Please ensure the input text is not empty and contains valid characters (Chinese, English, Japanese, or Korean)."
+            )
+
         phones_list = []
         norm_text_list = []
         word2ph = {"word":[], "ph":[]}
