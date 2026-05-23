@@ -147,6 +147,13 @@ def audio_transcriber(audio_file):
     return gr.update()
 
 
+def auto_fill_speaker_ref(prompt_audio_path, current_spk_files):
+    """当上传风格参考音频时，如果音色参考音频没有上传，则自动将风格参考音频添加到音色参考"""
+    if prompt_audio_path is not None and (not current_spk_files or len(current_spk_files) == 0):
+        return gr.update(value=[prompt_audio_path])
+    return gr.update()
+
+
 def parse_tagged_text(text):
     parts = re.split(r'(<(?!(?:break))[^>]+>.*?</[^>]+>)', text)
 
@@ -376,8 +383,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         is_cut_text = gr.Checkbox(label="是否切分文本", value=True)
                         # cut_punds = gr.Textbox(label="切分标点", value='{"。", ".", "?", "？", "!", "！", ",", "，", ":", "：", ";", "；", "、"}')
                         cut_minlen = gr.Number(label="最小切分长度", value=10)
-                        cut_mute = gr.Number(label="切分静音时长(s)", value=0.2)
-                        cut_mute_scale_map = gr.Textbox(label="标点静音缩放映射", value='{".": 1.5, "。": 1.5, "?": 1.5, "？": 1.5, "!": 1.5, "！": 1.5, ",": 0.8, "，": 0.8, "、": 0.6}')
+                        cut_mute = gr.Number(label="切分静音时长(s)", value=0.3)
+                        cut_mute_scale_map = gr.Textbox(label="标点静音缩放映射", value='{"…": 2.0, ".": 1.5, "。": 1.5, "?": 1.5, "？": 1.5, "!": 1.5, "！": 1.5, ",": 1.0, "，": 1.0, ":": 1.0, "：": 1.0, ";": 1.0, "；": 1.0, "~": 1.0, "、": 0.8, "・": 0.8}')
 
                 with gr.Column(scale=1):
                     gr.Markdown("### 第三步：风格与音色参考")
@@ -474,6 +481,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         fn=audio_transcriber,
         inputs=prompt_audio,
         outputs=prompt_text
+    ).then(
+        fn=auto_fill_speaker_ref,
+        inputs=[prompt_audio, multi_spk_files],
+        outputs=multi_spk_files
     )
 
     vc_source_audio.change(
@@ -551,7 +562,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_bert", type=str2bool, default=True, help="使用BERT提升中文语义理解能力")
     parser.add_argument("--use_flash_attn", type=str2bool, default=False, help="使用Flash Attn加速推理")
     parser.add_argument("--use_asr", type=str2bool, default=False, help="使用ASR自动识别音频文本")
-    parser.add_argument("--models_dir", type=str, default="models", help="预训练模型目录")
+    parser.add_argument("--models_dir", type=str, help="预训练模型目录")
     parser.add_argument("--port", type=int, default=9881, help="Gradio 端口号")
     parser.add_argument("--share", action="store_true", help="是否开启公网分享")
     parser.add_argument("--gsv_root_dir", type=str, default=".", help="原版GSV根目录，用于自动扫描模型")
@@ -562,11 +573,13 @@ if __name__ == "__main__":
     HISTORY_DIR = "output_history"
     os.makedirs(HISTORY_DIR, exist_ok=True)
 
+    if args.models_dir is None:
+        args.models_dir = Path.home() / ".cache" / "gsv"
+
     if args.use_asr:
         from qwen_asr import Qwen3ASRModel
 
-        base_dir = Path(__file__).parent.resolve()
-        local_model_path = base_dir / "models" / "qwen3_asr"
+        local_model_path = args.models_dir / "qwen3_asr"
         
         # 可改1.7B
         repo_id = "Qwen/Qwen3-ASR-0.6B"

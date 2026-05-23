@@ -258,7 +258,7 @@ async def handle_api_v2_request(req: dict[str, Any]):
     temperature = float(req.get("temperature", 1.0))
     repetition_penalty = float(req.get("repetition_penalty", 1.35))
     noise_scale = float(req.get("noise_scale", 0.5))
-    overlap_len = int(req.get("overlap_length", 10))
+    overlap_len = int(req.get("overlap_length", 5))
     stream_chunk = int(req.get("min_chunk_length", 25))
     is_cut_text = req.get("text_split_method", "cut1") not in {"", "cut0", "none"}
     cut_mute = req.get("fragment_interval", 0.3)
@@ -346,11 +346,11 @@ class TTSStreamRequest(BaseModel):
     
     is_cut_text: bool = Field(True, description="是否按标点切分文本")
     cut_minlen: int = Field(10, description="文本切分最小长度")
-    cut_mute: float = Field(0.2, description="切分后的静音时长(秒)")
+    cut_mute: float = Field(0.3, description="切分后的静音时长(秒)")
     
     stream_mode: str = Field("token", description="流式模式: token 或 sentence")
     stream_chunk: int = Field(25, description="token模式下每次生成的token数")
-    overlap_len: int = Field(10, description="重叠长度，用于平滑拼接")
+    overlap_len: int = Field(5, description="重叠长度，用于平滑拼接")
     boost_first_chunk: bool = Field(True, description="是否加速首个chunk生成")
     
     top_k: int = Field(15, description="GPT采样top_k")
@@ -369,7 +369,7 @@ class TTSBatchedRequest(BaseModel):
     
     is_cut_text: bool = Field(True, description="是否按标点切分文本")
     cut_minlen: int = Field(10, description="文本切分最小长度")
-    cut_mute: float = Field(0.2, description="切分后的静音时长(秒)")
+    cut_mute: float = Field(0.3, description="切分后的静音时长(秒)")
     
     return_subtitles: bool = Field(False, description="是否返回字幕时间戳")
     
@@ -404,8 +404,8 @@ class APIV2Request(BaseModel):
     repetition_penalty: float = 1.35
     sample_steps: int = 32
     super_sampling: bool = False
-    overlap_length: int = 2
-    min_chunk_length: int = 16
+    overlap_length: int = 5
+    min_chunk_length: int = 25
     batch_infer: bool = False
 
 
@@ -505,8 +505,8 @@ async def tts_v2_get(
     repetition_penalty: float = 1.35,
     sample_steps: int = 32,
     super_sampling: bool = False,
-    overlap_length: int = 2,
-    min_chunk_length: int = 16,
+    overlap_length: int = 5,
+    min_chunk_length: int = 25,
     batch_infer: bool = False,
 ):
     req = {

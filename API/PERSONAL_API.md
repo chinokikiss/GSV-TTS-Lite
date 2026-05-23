@@ -27,10 +27,10 @@ python personal_api.py
 | prompt_text | string | 否 | - | 提示音频文本，为空时自动ASR识别 |
 | is_cut_text | bool | 否 | true | 是否按标点切分文本 |
 | cut_minlen | int | 否 | 10 | 文本切分最小长度 |
-| cut_mute | float | 否 | 0.2 | 切分后的静音时长(秒) |
+| cut_mute | float | 否 | 0.3 | 切分后的静音时长(秒) |
 | stream_mode | string | 否 | "token" | 流式模式: token 或 sentence |
 | stream_chunk | int | 否 | 25 | token模式下每次生成的token数 |
-| overlap_len | int | 否 | 10 | 重叠长度，用于平滑拼接 |
+| overlap_len | int | 否 | 5 | 重叠长度，用于平滑拼接 |
 | boost_first_chunk | bool | 否 | true | 是否加速首个chunk生成 |
 | top_k | int | 否 | 15 | GPT采样top_k |
 | top_p | float | 否 | 1.0 | GPT采样top_p |
@@ -91,7 +91,7 @@ async def stream_tts():
 | prompt_text | string | 否 | - | 提示音频文本，为空时自动ASR识别 |
 | is_cut_text | bool | 否 | true | 是否按标点切分文本 |
 | cut_minlen | int | 否 | 10 | 文本切分最小长度 |
-| cut_mute | float | 否 | 0.2 | 切分后的静音时长(秒) |
+| cut_mute | float | 否 | 0.3 | 切分后的静音时长(秒) |
 | return_subtitles | bool | 否 | false | 是否返回字幕时间戳 |
 | top_k | int | 否 | 15 | GPT采样top_k |
 | top_p | float | 否 | 1.0 | GPT采样top_p |
