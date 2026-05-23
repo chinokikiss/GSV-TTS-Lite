@@ -1,0 +1,52 @@
+# Python bytecode and import caches
+__pycache__
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+
+# Build and packaging artifacts
+build/
+dist/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Local IDE/editor settings
+.vscode
+.idea
+
+# OS-specific junk files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local environment/config overrides
+.env
+*.local
+
+# Runtime logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Project runtime outputs
+output/
+
+# Downloaded/local model files for API usage
+models/
