@@ -91,6 +91,12 @@ class TTS:
         self.models_dir = models_dir
         if global_config.models_dir is None: global_config.models_dir = models_dir
         if global_config.use_jieba_fast is None: global_config.use_jieba_fast = use_jieba_fast
+        if use_flash_attn:
+            try:
+                import flash_attn
+            except ImportError:
+                use_flash_attn = False
+                logging.error("Flash attention is not available!")
         self.tts_config.use_flash_attn = use_flash_attn
         self.tts_config.gpt_cache = gpt_cache
         self.tts_config.sovits_cache = sovits_cache

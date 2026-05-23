@@ -560,7 +560,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpt_cache_len", type=int, default=1024, help="GPT KV cache 上下文长度")
     parser.add_argument("--gpt_batch_size", type=int, default=8, help="GPT 最大并行推理大小")
     parser.add_argument("--use_bert", type=str2bool, default=True, help="使用BERT提升中文语义理解能力")
-    parser.add_argument("--use_flash_attn", type=str2bool, default=False, help="使用Flash Attn加速推理")
+    parser.add_argument("--use_flash_attn", type=str2bool, default=True, help="使用Flash Attn加速推理")
     parser.add_argument("--use_asr", type=str2bool, default=False, help="使用ASR自动识别音频文本")
     parser.add_argument("--models_dir", type=str, help="预训练模型目录")
     parser.add_argument("--port", type=int, default=9881, help="Gradio 端口号")
