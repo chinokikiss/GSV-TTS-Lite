@@ -237,7 +237,17 @@ class Text2SemanticDecoder(nn.Module):
             stream_context = torch.no_grad()
 
         with stream_context:
+            max_btz = max(self.cuda_graph_buckets.keys())
+            max_seqlen = max(i for list in self.cuda_graph_buckets.values() for i in list)
+            max_bucket = Bucket()
+            max_bucket.k_cache = torch.empty((self.num_layers, max_btz, self.num_head, max_seqlen, int(self.model_dim / self.num_head)), dtype=dtype, device=device)
+            max_bucket.v_cache = torch.empty((self.num_layers, max_btz, self.num_head, max_seqlen, int(self.model_dim / self.num_head)), dtype=dtype, device=device)
+            max_bucket.decode_attn_mask = torch.zeros((max_btz, self.num_head, 1, max_seqlen), dtype=torch.bool, device=device)
+            max_bucket.kv_cache_len = torch.zeros((max_btz,), dtype=torch.int64, device=device)
+            max_bucket.graph_xy_pos = torch.zeros((max_btz, 1, self.model_dim), dtype=dtype, device=device)
+        
             for batch_size in self.cuda_graph_buckets:
+                BATCH_IDX = torch.arange(batch_size, dtype=torch.int64, device=device)
                 for i in range(-1, -len(self.cuda_graph_buckets[batch_size])-1, -1):
                     max_kv_cache = self.cuda_graph_buckets[batch_size][i]
 
@@ -246,21 +256,12 @@ class Text2SemanticDecoder(nn.Module):
                     bucket.max_kv_cache = max_kv_cache
                     bucket.batch_size = batch_size
 
-                    if i == -1:
-                        bucket.k_cache = torch.zeros((self.num_layers, batch_size, self.num_head, max_kv_cache, int(self.model_dim/self.num_head)), dtype=dtype, device=device)
-                        bucket.v_cache = torch.zeros((self.num_layers, batch_size, self.num_head, max_kv_cache, int(self.model_dim/self.num_head)), dtype=dtype, device=device)
-                        bucket.decode_attn_mask = torch.zeros((batch_size, self.num_head, 1, max_kv_cache), dtype=torch.bool, device=device)
-                        bucket.kv_cache_len = torch.zeros((batch_size,), dtype=torch.int64, device=device)
-                        bucket.graph_xy_pos = torch.zeros((batch_size, 1, self.model_dim), dtype=dtype, device=device)
-                        bucket.batch_indices = torch.arange(batch_size, dtype=torch.int64, device=device)
-                    else:
-                        max_bucket: Bucket = self.cuda_graph_buckets[batch_size][-1]
-                        bucket.k_cache = max_bucket.k_cache[:, :, :, :max_kv_cache]
-                        bucket.v_cache = max_bucket.v_cache[:, :, :, :max_kv_cache]
-                        bucket.decode_attn_mask = max_bucket.decode_attn_mask[:, :, :, :max_kv_cache]
-                        bucket.kv_cache_len = max_bucket.kv_cache_len[:]
-                        bucket.graph_xy_pos = max_bucket.graph_xy_pos[:]
-                        bucket.batch_indices = max_bucket.batch_indices[:]
+                    bucket.k_cache = max_bucket.k_cache[:, :batch_size, :, :max_kv_cache]
+                    bucket.v_cache = max_bucket.v_cache[:, :batch_size, :, :max_kv_cache]
+                    bucket.decode_attn_mask = max_bucket.decode_attn_mask[:batch_size, :, :, :max_kv_cache]
+                    bucket.kv_cache_len = max_bucket.kv_cache_len[:batch_size]
+                    bucket.graph_xy_pos = max_bucket.graph_xy_pos[:batch_size]
+                    bucket.batch_indices = BATCH_IDX
 
                     # 预热运行
                     for _ in range(3):
