@@ -414,18 +414,8 @@ async def startup_event():
     global tts, asr
     print("正在加载 TTS 模型...")
     
-    max_cache_len = 1024
-    batch_sizes = [1, 4, 8]
-    cache_lens = []
-    length = 512
-    while length <= max_cache_len:
-        cache_lens.append(length)
-        length *= 2
-    gpt_cache = [(b, c) for b in batch_sizes for c in cache_lens]
-    
     tts = TTS(
         models_dir=models_dir,
-        gpt_cache=gpt_cache,
         sovits_cache=[50],
     )
     print("TTS 模型加载完成！")

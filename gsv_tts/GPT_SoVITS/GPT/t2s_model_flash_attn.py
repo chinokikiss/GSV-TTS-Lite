@@ -230,13 +230,13 @@ class Text2SemanticDecoder(nn.Module):
 
         with stream_context:
             max_btz = max(self.cuda_graph_buckets.keys())
-            max_seqlen = max(i for list in self.cuda_graph_buckets.values() for i in list)
-            max_bucket = Bucket()
-            max_bucket.k_cache = torch.empty((self.num_layers, max_btz, max_seqlen, self.num_head, int(self.model_dim / self.num_head)), dtype=dtype, device=device)
-            max_bucket.v_cache = torch.empty((self.num_layers, max_btz, max_seqlen, self.num_head, int(self.model_dim / self.num_head)), dtype=dtype, device=device)
-            max_bucket.kv_cache_len = torch.zeros((max_btz,), dtype=torch.int64, device=device)
-            max_bucket.graph_xy_pos = torch.zeros((max_btz, 1, self.model_dim), dtype=dtype, device=device)
-
+            max_numel = self.num_layers * max(btz * seqlen 
+                                              for btz in self.cuda_graph_buckets 
+                                                for seqlen in self.cuda_graph_buckets[btz]) * self.model_dim
+            k_cache_root = torch.empty(max_numel, dtype=dtype, device=device)
+            v_cache_root = torch.empty(max_numel, dtype=dtype, device=device)
+            KV_CACHE_LEN = torch.zeros((max_btz,), dtype=torch.int64, device=device)
+            GRAPH_XY_POS = torch.zeros((max_btz, 1, self.model_dim), dtype=dtype, device=device)
             for batch_size in self.cuda_graph_buckets:
                 for i in range(-1, -len(self.cuda_graph_buckets[batch_size])-1, -1):
                     max_kv_cache = self.cuda_graph_buckets[batch_size][i]
@@ -246,10 +246,17 @@ class Text2SemanticDecoder(nn.Module):
                     bucket.max_kv_cache = max_kv_cache
                     bucket.batch_size = batch_size
 
-                    bucket.k_cache = max_bucket.k_cache[:, :batch_size, :max_kv_cache]
-                    bucket.v_cache = max_bucket.v_cache[:, :batch_size, :max_kv_cache]
-                    bucket.kv_cache_len = max_bucket.kv_cache_len[:batch_size]
-                    bucket.graph_xy_pos = max_bucket.graph_xy_pos[:batch_size]
+                    bucket.kv_cache_len = KV_CACHE_LEN[:batch_size]
+                    bucket.graph_xy_pos = GRAPH_XY_POS[:batch_size]
+
+                    if i == -1:
+                        numel_kv_cache = self.num_layers* batch_size* max_kv_cache*self.model_dim
+                        bucket.k_cache = k_cache_root[:numel_kv_cache].view(self.num_layers, batch_size, max_kv_cache, self.num_head, int(self.model_dim / self.num_head))
+                        bucket.v_cache = v_cache_root[:numel_kv_cache].view(self.num_layers, batch_size, max_kv_cache, self.num_head, int(self.model_dim / self.num_head))
+                    else:
+                        max_bucket: Bucket = self.cuda_graph_buckets[batch_size][-1]
+                        bucket.k_cache = max_bucket.k_cache[:, :, :max_kv_cache]
+                        bucket.v_cache = max_bucket.v_cache[:, :, :max_kv_cache]
 
                     # 预热运行
                     for _ in range(3):
