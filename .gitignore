@@ -46,7 +46,9 @@ Desktop.ini
 *.temp
 
 # Project runtime outputs
-output/
+output
+output_history
+presets
 
 # Downloaded/local model files for API usage
 models/

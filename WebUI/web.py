@@ -4,6 +4,7 @@ import sys
 import time
 import json
 import uuid
+import pickle
 import torch
 import logging
 import argparse
@@ -18,6 +19,9 @@ import platform
 
 # 添加项目根目录到 sys.path，确保能找到 gsv_tts 模块
 project_root = Path(__file__).parent.parent
+webui_dir = Path(__file__).parent
+PRESETS_DIR = webui_dir / "presets"
+HISTORY_DIR = webui_dir / "output_history"
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
@@ -189,26 +193,44 @@ def parse_speaker_weights(multi_spk_files, spk_weights):
     return spk_audio
 
 
-# 预设存储
-presets = {}
+def get_preset_path(name):
+    return PRESETS_DIR / f"{name}.pkl"
+
+
+def get_preset_names():
+    return sorted(p.stem for p in PRESETS_DIR.glob("*.pkl"))
+
+
+def refresh_preset_dropdown():
+    return gr.update(choices=get_preset_names())
+
+
+def read_preset(name):
+    with open(get_preset_path(name), "rb") as f:
+        return pickle.load(f)
+
+
 def save_preset(name, prompt_audio, prompt_text, multi_spk_files, spk_weights):
     if not name:
-        return gr.update(choices=list(presets.keys())), "请输入预设名称"
-    presets[name] = {
+        return refresh_preset_dropdown(), "请输入预设名称"
+    PRESETS_DIR.mkdir(exist_ok=True)
+    preset = {
         "prompt_audio": prompt_audio,
         "prompt_text": prompt_text,
         "multi_spk_files": multi_spk_files,
         "spk_weights": spk_weights
     }
-    return gr.update(choices=list(presets.keys()), value=name), f"预设 '{name}' 已保存"
+    with open(get_preset_path(name), "wb") as f:
+        pickle.dump(preset, f)
+    return gr.update(choices=get_preset_names(), value=name), f"预设 '{name}' 已保存"
 
 def load_preset(name):
     global ignore_transcribe
     ignore_transcribe = True
 
-    if name not in presets:
+    if not name:
         return None, "", None, "1.0"
-    p = presets[name]
+    p = read_preset(name)
     return p["prompt_audio"], p["prompt_text"], p["multi_spk_files"], p["spk_weights"]
 
 
@@ -267,6 +289,7 @@ def tts_request(
         prompt_audio_texts = []
         texts = []
 
+        preset_names = set(get_preset_names())
         for i in range(len(cut_texts)):
             result = re.search(r'<break:(.*?)/>', cut_texts[i])
             if result:
@@ -275,12 +298,12 @@ def tts_request(
             else:
                 orig_idx.append(i)
 
-                if tags[i] is None or tags[i] not in presets:
+                if tags[i] is None or tags[i] not in preset_names:
                     spk_audio_paths.append(spk_audio)
                     prompt_audio_paths.append(prompt_audio)
                     prompt_audio_texts.append(prompt_text)
                 else:
-                    p = presets[tags[i]]
+                    p = read_preset(tags[i])
                     spk_audio_paths.append(parse_speaker_weights(p["multi_spk_files"], p["spk_weights"]))
                     prompt_audio_paths.append(p["prompt_audio"])
                     prompt_audio_texts.append(p["prompt_text"])
@@ -339,9 +362,9 @@ def tts_request(
         )
 
         filename = f"result_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:4]}.wav"
-        save_path = os.path.join(HISTORY_DIR, filename)
-        audio.save(save_path)
-        history_entry = [datetime.now().strftime("%H:%M:%S"), text[:20] + "...", save_path]
+        save_path = HISTORY_DIR / filename
+        audio.save(str(save_path))
+        history_entry = [datetime.now().strftime("%H:%M:%S"), text[:20] + "...", str(save_path)]
 
         return (audio.samplerate, audio.audio_data), msg, history_entry
     
@@ -370,7 +393,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 with gr.Column(scale=1):
                     gr.Markdown("### 第二步：合成内容（支持多说话人，支持停顿标签）")
                     text = gr.Textbox(label="合成目标文本", lines=5, value="谁罕见?啊？骂谁罕见！")
-                    enable_enhance = gr.Checkbox(label="启用音频增强", value=True)
+                    enable_enhance = gr.Checkbox(label="启用音频增强", value=False)
 
                     with gr.Accordion("生成参数", open=False):
                         speed = gr.Slider(0.5, 2.0, 1.0, step=0.1, label="语速")
@@ -390,7 +413,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     gr.Markdown("### 第三步：风格与音色参考")
 
                     with gr.Row():
-                        preset_dropdown = gr.Dropdown(choices=[], label="加载预设", scale=2)
+                        preset_dropdown = gr.Dropdown(choices=get_preset_names(), label="加载预设", scale=2)
                         preset_name = gr.Textbox(label="预设名称", placeholder="保存当前设置为...", scale=2)
                         save_btn = gr.Button("💾 保存预设", scale=1)
 
@@ -463,6 +486,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         fn=load_preset,
         inputs=[preset_dropdown],
         outputs=[prompt_audio, prompt_text, multi_spk_files, spk_weights]
+    )
+    preset_dropdown.focus(
+        fn=refresh_preset_dropdown,
+        outputs=[preset_dropdown]
     )
 
     multi_spk_files.change(
@@ -570,8 +597,8 @@ if __name__ == "__main__":
     args, _ = parser.parse_known_args()
 
     GSV_ROOT_DIR = args.gsv_root_dir
-    HISTORY_DIR = "output_history"
-    os.makedirs(HISTORY_DIR, exist_ok=True)
+    PRESETS_DIR.mkdir(exist_ok=True)
+    HISTORY_DIR.mkdir(exist_ok=True)
 
     if args.models_dir is None:
         args.models_dir = Path.home() / ".cache" / "gsv"
