@@ -602,8 +602,6 @@ class Text2SemanticDecoder(nn.Module):
             for idx in tqdm(range(1000)):
                 decode_steps += 1
 
-                bucket.kv_cache_len[ignore_batch] = 0
-
                 # 使用 CUDA Graph（如果可用）或普通执行
                 if bucket.cuda_graph is not None:
                     bucket.graph_xy_pos.copy_(xy_pos)
@@ -652,7 +650,7 @@ class Text2SemanticDecoder(nn.Module):
                                 bucket.kv_cache_len[i].fill_(0)
                                 max_kv_cache_len = bucket.kv_cache_len.max()
                                 for bucket_i in range(len(buckets)):
-                                    if buckets[bucket_i].max_kv_cache > max_kv_cache_len:
+                                    if buckets[bucket_i].max_kv_cache >= max_kv_cache_len + check_interval:
                                         break
                                 bucket: Bucket = buckets[bucket_i]
                                 
