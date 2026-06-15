@@ -602,6 +602,8 @@ class Text2SemanticDecoder(nn.Module):
             for idx in tqdm(range(1000)):
                 decode_steps += 1
 
+                bucket.kv_cache_len[ignore_batch] = 0
+
                 # 使用 CUDA Graph（如果可用）或普通执行
                 if bucket.cuda_graph is not None:
                     bucket.graph_xy_pos.copy_(xy_pos)

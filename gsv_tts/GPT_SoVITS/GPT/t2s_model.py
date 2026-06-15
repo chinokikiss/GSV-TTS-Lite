@@ -634,6 +634,7 @@ class Text2SemanticDecoder(nn.Module):
             for idx in tqdm(range(1000)):
                 decode_steps += 1
 
+                bucket.kv_cache_len[ignore_batch] = 0
                 bucket.decode_attn_mask[batch_indices, :, :, bucket.kv_cache_len] = True
 
                 # 使用 CUDA Graph（如果可用）或普通执行
