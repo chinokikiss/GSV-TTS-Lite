@@ -87,6 +87,7 @@ class Config:
         self.dtype = dtype
         self.device = device
 
+        self.use_int8_w8a8 = False
         self.use_flash_attn = True
 
         self.gpt_cache = None

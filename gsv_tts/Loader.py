@@ -161,6 +161,10 @@ def get_gpt_weights(gpt_path, tts_config: Config):
         
         t2s_model.load_state_dict(dict_s1["weight"])
         t2s_model = t2s_model.to(tts_config.device, tts_config.dtype)
+    
+    if tts_config.use_int8_w8a8:
+        from .GPT_SoVITS.Int8_Quant.int8_loader import quantize_linear
+        t2s_model = quantize_linear(t2s_model, excluded_names=["bert_proj", "ar_predict_layer"])
 
     t2s_model.eval()
     t2s_model.initialize_runtime(tts_config.dtype, tts_config.device, tts_config.gpt_cache)

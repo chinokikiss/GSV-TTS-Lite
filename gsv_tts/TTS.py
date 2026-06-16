@@ -43,6 +43,7 @@ class TTS:
         models_dir: str = None,
         device: str = None,
         dtype: str = None,
+        use_int8_w8a8: bool = False,
         use_flash_attn: bool = False,
         use_bert: bool = False,
         auto_bert: bool = True,
@@ -59,10 +60,11 @@ class TTS:
             models_dir (str): The directory path containing the pretrained model files.
             device (str): The device to run the model on.
             dtype (str): The data type for model inference (e.g., "float16", "bfloat16", "float32").
+            use_int8_w8a8 (bool): Whether to enable W8A8 Int8 quantization for the GPT model's Linear layers. This reduces VRAM usage and can accelerate autoregressive generation. Requires the 'triton' package to be installed.
             use_flash_attn (bool): Whether to enable Flash Attention for faster inference.
             use_bert (bool): Whether to use BERT for enhanced Chinese semantic understanding. If True, BERT is loaded at initialization.
             auto_bert (bool): Whether to automatically load BERT when Chinese text is detected. Only effective when use_bert=False. Default is True.
-            use_jieba_fast (bool): Whether to use jieba-fast for faster Chinese text segmentation. `jieba-fast` needs to be installed.
+            use_jieba_fast (bool): Whether to use jieba-fast for faster Chinese text segmentation. Requires the 'jieba-fast' package to be installed.
             always_load_cnhubert (bool): Whether to keep the CNHubert model loaded in VRAM. Set to True to accelerate Voice Conversion.
             always_load_sv (bool): Whether to keep the Speaker Verification model loaded in VRAM. Set to True to accelerate Speaker Verification.
         """
@@ -91,6 +93,7 @@ class TTS:
         self.models_dir = models_dir
         if global_config.models_dir is None: global_config.models_dir = models_dir
         if global_config.use_jieba_fast is None: global_config.use_jieba_fast = use_jieba_fast
+        self.tts_config.use_int8_w8a8 = use_int8_w8a8
         if use_flash_attn:
             try:
                 import flash_attn
