@@ -181,7 +181,7 @@ def parse_tagged_text(text):
         cut_texts.extend(sub_parts)
     
     for i in range(len(cut_texts)-1, -1, -1):
-        if len(re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', cut_texts[i])) == 0:
+        if len(re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\u3040-\u309f\u30a0-\u30ff]', '', cut_texts[i])) == 0:
             cut_texts.pop(i)
             tags.pop(i)
 
