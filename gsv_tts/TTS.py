@@ -1643,7 +1643,7 @@ class TTS:
             
         return head_offset
 
-    def _find_tail_threshold_offsets(self, audio, threshold=0.02, frame_length=512, hop_length=256, search_len=64000, margin=3200):
+    def _find_tail_threshold_offsets(self, audio, threshold=0.01, frame_length=512, hop_length=256, search_len=64000, margin=3200):
         search_audio_tail = audio[-search_len:]
         actual_len = search_audio_tail.shape[0]
         frames_tail = search_audio_tail.unfold(0, frame_length, hop_length)
